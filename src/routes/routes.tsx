@@ -9,6 +9,7 @@ import ErrorPage from "@/components/ErrorPage";
 import UserList from "@/pages/dashboard/user/UserList";
 import { PermissionRoute } from "@/components/guards/PermissionRoute";
 import { AppHref } from "./constants";
+import GroupList from "@/pages/dashboard/group/GroupList";
 
 export default function AppRoutes() {
   return (
@@ -31,6 +32,14 @@ export default function AppRoutes() {
             element={
               <PermissionRoute permission="users:read">
                 <UserList />
+              </PermissionRoute>
+            }
+          />
+          <Route
+            path={AppHref.groupsRoute}
+            element={
+              <PermissionRoute permission="groups:read">
+                <GroupList />
               </PermissionRoute>
             }
           />
