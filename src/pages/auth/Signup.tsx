@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import api from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +14,8 @@ import {
 import type { ErrorResponse } from "@/responses/error";
 import type { CreateUserRequest } from "@/requests/user";
 import { AlertCircle } from "lucide-react";
-
-const signup = async (data: CreateUserRequest) => {
-  const { data: response } = await api.post("/users/root", data);
-  return response;
-};
+import { createUserRoot } from "@/api/users/createUserRoot";
+import { AppHref } from "@/routes/constants";
 
 export default function Signup() {
   const [form, setForm] = useState<CreateUserRequest>({
@@ -33,9 +29,9 @@ export default function Signup() {
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: signup,
+    mutationFn: createUserRoot,
     onSuccess: () => {
-      navigate("/login", { replace: true });
+      navigate(AppHref.loginRoute, { replace: true });
     },
     onError: (err: unknown) => {
       let message = "Failed to create account";

@@ -13,8 +13,14 @@ export const SystemHref = {
 export const ProtectedHref = {
   dashboardHomeRoute: "/",
   usersRoute: "/users",
+  createUserRoute: "/users/create",
+  userEditRoute: (userId = ":id") => `/users/${userId}/edit`,
   groupsRoute: "/groups",
+  createGroupRoute: "/groups/create",
+  editGroupRoute: (groupId = ":id") => `/groups/${groupId}/edit`,
   storefrontsRoute: "/storefronts",
+  createStorefrontRoute: "/storefronts/create",
+  editStorefrontRoute: (storeId = ":id") => `/storefronts/${storeId}/edit`,
   productsRoute: "/products",
   settingsRoute: "/settings",
 };

@@ -1,14 +1,18 @@
+// pages/UserList.tsx
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2, Shield, Users } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchUsers } from "@/api/users/fetchUsers";
+import type { User } from "@/types/user";
+import { AppHref } from "@/routes/constants";
 
 export default function UserList() {
+  const navigate = useNavigate();
   const { can } = usePermissions();
-  // const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Fetch users list
   const {
@@ -18,18 +22,38 @@ export default function UserList() {
   } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    // Only enable query if user has read permission
-    // Note: The PermissionRoute guard already checked this, but this is extra safety
     enabled: can("users:read"),
   });
 
   const users = paginatedResponse?.data;
-  console.log({ users });
 
-  // Permission checks for various actions
-  // const canCreate = can("users:create");
+  // Permission checks
+  const canCreate = can("users:create");
   const canUpdate = can("users:update");
   const canDelete = can("users:delete");
+
+  /**
+   * Handle edit button click - navigate to edit page
+   */
+  const handleEditClick = (user: User) => {
+    navigate(`/users/${user.id}/edit`);
+  };
+
+  /**
+   * Handle create button click - navigate to create page
+   */
+  const handleCreateClick = () => {
+    navigate(AppHref.createUserRoute);
+  };
+
+  /**
+   * Handle delete button click
+   * TODO: Implement delete confirmation dialog
+   */
+  const handleDeleteClick = (user: User) => {
+    // TODO: Show confirmation dialog before deleting
+    console.log("Delete user:", user.id);
+  };
 
   if (isLoading) {
     return (
@@ -58,13 +82,9 @@ export default function UserList() {
           </p>
         </div>
 
-        {/* Create User Button - Only show if user has create permission */}
+        {/* Create User Button */}
         <PermissionGuard permission="users:create">
-          <Button
-            onClick={() => {
-              /* TODO: Open create modal */
-            }}
-          >
+          <Button onClick={handleCreateClick}>
             <Plus className="h-4 w-4 mr-2" />
             Add User
           </Button>
@@ -94,7 +114,6 @@ export default function UserList() {
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
                       Status
                     </th>
-                    {/* Only show actions column if user can do anything */}
                     {(canUpdate || canDelete) && (
                       <th className="text-right py-3 px-4 font-medium text-gray-600">
                         Actions
@@ -131,31 +150,28 @@ export default function UserList() {
                         </span>
                       </td>
 
-                      {/* Actions - Only show if user has permissions */}
                       {(canUpdate || canDelete) && (
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-2">
-                            {/* Edit button - only if user can update */}
                             <PermissionGuard permission="users:update">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                // onClick={() => setSelectedUser(user)}
+                                onClick={() => handleEditClick(user)}
+                                title="Edit user"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                             </PermissionGuard>
 
-                            {/* Delete button - only if user can delete and it's not root */}
                             <PermissionGuard permission="users:delete">
                               {!user.is_root && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="text-red-600 hover:text-red-700"
-                                  onClick={() => {
-                                    /* TODO: Handle delete */
-                                  }}
+                                  onClick={() => handleDeleteClick(user)}
+                                  title="Delete user"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -173,16 +189,14 @@ export default function UserList() {
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 mb-4">No users found</p>
-              <PermissionGuard permission="users:create">
-                <Button
-                  onClick={() => {
-                    /* TODO: Open create modal */
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First User
-                </Button>
-              </PermissionGuard>
+              {canCreate && (
+                <PermissionGuard permission="users:create">
+                  <Button onClick={handleCreateClick}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First User
+                  </Button>
+                </PermissionGuard>
+              )}
             </div>
           )}
         </CardContent>

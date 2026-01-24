@@ -1,33 +1,66 @@
+// pages/GroupList.tsx
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2, Users, Shield } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
-
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGroups } from "@/api/groups/fetchGroups";
-import { useMemo } from "react";
+import type { Group } from "@/types/group";
+import { AppHref } from "@/routes/constants";
 
 export default function GroupList() {
+  const navigate = useNavigate();
   const page = 1;
   const pageSize = 20;
   const { can } = usePermissions();
-  // const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
   // Fetch groups list
   const { data, isLoading, error } = useQuery({
     queryKey: ["groups", page, pageSize],
     queryFn: fetchGroups,
-    // Only enable if user has read permission
     enabled: can("groups:read"),
   });
 
   const groups = useMemo(() => data?.data || [], [data]);
 
-  // Permission checks for various actions
-  // const canCreate = can("groups:create");
+  // Permission checks
+  const canCreate = can("groups:create");
   const canUpdate = can("groups:update");
   const canDelete = can("groups:delete");
+
+  /**
+   * Handle edit button click - navigate to edit page
+   */
+  const handleEditClick = (group: Group) => {
+    navigate(`/groups/${group.id}/edit`);
+  };
+
+  /**
+   * Handle create button click - navigate to create page
+   */
+  const handleCreateClick = () => {
+    navigate(AppHref.createGroupRoute);
+  };
+
+  /**
+   * Handle delete button click
+   * TODO: Implement delete confirmation dialog
+   */
+  const handleDeleteClick = (group: Group) => {
+    // TODO: Show confirmation dialog before deleting
+    console.log("Delete group:", group.id);
+  };
+
+  /**
+   * Handle view details click - navigate to group detail page
+   */
+  const handleViewDetails = (group: Group) => {
+    // TODO: Create group detail page
+    navigate(`/groups/${group.id}`);
+  };
 
   if (isLoading) {
     return (
@@ -56,17 +89,15 @@ export default function GroupList() {
           </p>
         </div>
 
-        {/* Create Group Button - Only show if user has create permission */}
-        <PermissionGuard permission="groups:create">
-          <Button
-            onClick={() => {
-              /* TODO: Open create modal */
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Group
-          </Button>
-        </PermissionGuard>
+        {/* Create Group Button */}
+        {canCreate && (
+          <PermissionGuard permission="groups:create">
+            <Button onClick={handleCreateClick}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Group
+            </Button>
+          </PermissionGuard>
+        )}
       </div>
 
       {/* Groups Grid */}
@@ -105,22 +136,19 @@ export default function GroupList() {
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => {
-                        /* TODO: Navigate to group detail */
-                      }}
+                      onClick={() => handleViewDetails(group)}
                     >
                       View Details
                     </Button>
 
-                    {/* Only show edit/delete if user has permissions */}
                     {(canUpdate || canDelete) && (
                       <div className="flex gap-1">
                         <PermissionGuard permission="groups:update">
                           <Button
                             variant="ghost"
                             size="sm"
-                            // onClick={() => setSelectedGroup(group)}
-                            onClick={() => {}}
+                            onClick={() => handleEditClick(group)}
+                            title="Edit group"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -131,9 +159,8 @@ export default function GroupList() {
                             variant="ghost"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              /* TODO: Handle delete */
-                            }}
+                            onClick={() => handleDeleteClick(group)}
+                            title="Delete group"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -155,11 +182,7 @@ export default function GroupList() {
               Create groups to organize users and assign permissions at scale
             </p>
             <PermissionGuard permission="groups:create">
-              <Button
-                onClick={() => {
-                  /* TODO: Open create modal */
-                }}
-              >
+              <Button onClick={handleCreateClick}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create First Group
               </Button>

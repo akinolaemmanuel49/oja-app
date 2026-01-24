@@ -1,8 +1,8 @@
 import type { Group } from "@/types/group";
 import api from "../client";
 
-type UpdateGroupRequest = {
-  name?: string;
+export type UpdateGroupRequest = {
+  name: string;
   description?: string;
 };
 
