@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
+import { AppHref } from "@/routes/constants";
 
 type ErrorConfig = {
   title: string;
@@ -40,7 +41,7 @@ export default function ErrorPage() {
   useEffect(() => {
     if (status === 401) {
       const timer = setTimeout(() => {
-        navigate("/login", { replace: true });
+        navigate(AppHref.loginRoute, { replace: true });
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -64,7 +65,7 @@ export default function ErrorPage() {
 
           {status === 401 && (
             <Button asChild variant="outline">
-              <Link to="/login">Login</Link>
+              <Link to={AppHref.loginRoute}>Login</Link>
             </Button>
           )}
         </div>

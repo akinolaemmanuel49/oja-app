@@ -1,7 +1,7 @@
 import { Home, Users, Settings, Package, Store } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
-import { DashboardHomeRoute } from "@/routes/constants";
+import { AppHref } from "@/routes/constants";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -25,30 +25,30 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     {
       icon: Home,
       label: "Dashboard",
-      href: DashboardHomeRoute,
+      href: AppHref.dashboardHomeRoute,
     },
     {
       icon: Store,
       label: "Storefronts",
-      href: "/storefronts",
+      href: AppHref.storefrontsRoute,
       permission: "storefronts:read", // Only show if user can read storefronts
     },
     {
       icon: Package,
       label: "Products",
-      href: "/products",
+      href: AppHref.productsRoute,
       permission: "products:read", // Only show if user can read products
     },
     {
       icon: Users,
       label: "Users",
-      href: "/users",
+      href: AppHref.usersRoute,
       permission: "users:read", // Only show if user can read users
     },
     {
       icon: Settings,
       label: "Settings",
-      href: "/settings",
+      href: AppHref.settingsRoute,
     },
   ];
 
@@ -57,8 +57,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
    * Exact match for home, prefix match for others.
    */
   const isActive = (href: string) => {
-    if (href === DashboardHomeRoute) {
-      return location.pathname === DashboardHomeRoute;
+    if (href === AppHref.dashboardHomeRoute) {
+      return location.pathname === AppHref.dashboardHomeRoute;
     }
     return location.pathname.startsWith(href);
   };

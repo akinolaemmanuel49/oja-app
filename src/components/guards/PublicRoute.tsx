@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { DashboardHomeRoute } from "@/routes/constants";
+import { AppHref } from "@/routes/constants";
 import { Navigate, Outlet } from "react-router-dom";
 
 export function PublicRoute() {
@@ -8,7 +8,7 @@ export function PublicRoute() {
   if (isLoading) return null;
 
   return isAuthenticated ? (
-    <Navigate to={DashboardHomeRoute} replace />
+    <Navigate to={AppHref.dashboardHomeRoute} replace />
   ) : (
     <Outlet />
   );

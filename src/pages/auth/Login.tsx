@@ -15,7 +15,7 @@ import {
 import { AlertCircle } from "lucide-react";
 import type { ErrorResponse } from "@/responses/error";
 import { login } from "@/api/auth/login";
-import { DashboardHomeRoute } from "@/routes/constants";
+import { AppHref } from "@/routes/constants";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,7 +31,7 @@ export default function Login() {
 
     onSuccess: async () => {
       await refreshSession();
-      navigate(DashboardHomeRoute, { replace: true });
+      navigate(AppHref.dashboardHomeRoute, { replace: true });
     },
     onError: (err: unknown) => {
       let message = "Invalid credentials";
@@ -47,7 +47,7 @@ export default function Login() {
   });
 
   if (isAuthenticated) {
-    navigate(DashboardHomeRoute, { replace: true });
+    navigate(AppHref.dashboardHomeRoute, { replace: true });
     return null;
   }
 

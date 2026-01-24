@@ -1,7 +1,25 @@
-export const DashboardHomeRoute = "/";
-export const LoginRoute = "/login";
-export const SignupRoute = "/signup";
-export const UnauthorizedRoute = "/401";
-export const ForbiddenRoute = "/403";
-export const NotFoundRoute = "/404";
-export const ServerErrorRoute = "/500";
+export const PublicHref = {
+  loginRoute: "/login",
+  signupRoute: "/signup",
+};
+
+export const SystemHref = {
+  unauthorizedRoute: "/401",
+  forbiddenRoute: "/403",
+  notFoundRoute: "/404",
+  serverErrorRoute: "/500",
+};
+
+export const ProtectedHref = {
+  dashboardHomeRoute: "/",
+  usersRoute: "/users",
+  storefrontsRoute: "/storefronts",
+  productsRoute: "/products",
+  settingsRoute: "/settings",
+};
+
+export const AppHref = {
+  ...PublicHref,
+  ...ProtectedHref,
+  ...SystemHref,
+};

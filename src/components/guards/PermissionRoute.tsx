@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 
 import type { PermissionCode } from "@/types/permission";
-import { ForbiddenRoute } from "@/routes/constants";
+import { AppHref } from "@/routes/constants";
 import type { ReactNode } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -56,5 +56,9 @@ export function PermissionRoute({
   }
 
   // Redirect to 403 if no access, otherwise render children
-  return hasAccess ? <>{children}</> : <Navigate to={ForbiddenRoute} replace />;
+  return hasAccess ? (
+    <>{children}</>
+  ) : (
+    <Navigate to={AppHref.forbiddenRoute} replace />
+  );
 }

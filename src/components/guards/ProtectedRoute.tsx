@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
-import { UnauthorizedRoute } from "@/routes/constants";
+import { AppHref } from "@/routes/constants";
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -17,6 +17,6 @@ export function ProtectedRoute() {
   return isAuthenticated ? (
     <Outlet />
   ) : (
-    <Navigate to={UnauthorizedRoute} replace />
+    <Navigate to={AppHref.unauthorizedRoute} replace />
   );
 }
