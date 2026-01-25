@@ -1,10 +1,6 @@
 import type { Group } from "@/types/group";
 import api from "../client";
-
-export type UpdateGroupRequest = {
-  name: string;
-  description?: string;
-};
+import type { UpdateGroupRequest } from "@/requests/group";
 
 export async function updateGroup(
   groupId: string,

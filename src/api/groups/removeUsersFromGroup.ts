@@ -1,13 +1,10 @@
+import type { RemoveUsersFromGroupResponse } from "@/responses/group";
 import api from "../client";
 
 export async function removeUsersFromGroup(
   groupId: string,
   userIds: string[],
-): Promise<{
-  message: string;
-  removed: string[];
-  not_found: string[];
-}> {
+): Promise<RemoveUsersFromGroupResponse> {
   const { data } = await api.post(`/groups/${groupId}/members/remove`, {
     user_ids: userIds,
   });

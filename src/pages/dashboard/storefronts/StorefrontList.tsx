@@ -2,62 +2,52 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit, Trash2, Shield, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Globe, Store, Lock } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
-import { fetchUsers } from "@/api/users/fetchUsers";
-import type { User } from "@/types/user";
-import { AppHref } from "@/routes/constants";
+import { fetchStorefronts } from "@/api/storefronts/fetchStorefronts";
+import type { Storefront } from "@/types/storefront";
 
-export default function UserList() {
+export default function StorefrontList() {
   const navigate = useNavigate();
+  const page = 1;
+  const pageSize = 20;
   const { can } = usePermissions();
 
-  // Fetch users list
+  // Fetch storefronts list
   const {
     data: paginatedResponse,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
-    enabled: can("users:read"),
+    queryKey: ["storefronts", page, pageSize],
+    queryFn: fetchStorefronts,
+    enabled: can("storefronts:read"),
   });
 
-  const users = paginatedResponse?.data;
+  const storefronts = paginatedResponse?.data ?? [];
 
-  // Permission checks
-  const canCreate = can("users:create");
-  const canUpdate = can("users:update");
-  const canDelete = can("users:delete");
+  const canCreate = can("storefronts:create");
+  const canUpdate = can("storefronts:update");
+  const canDelete = can("storefronts:delete");
 
-  /**
-   * Handle edit button click - navigate to edit page
-   */
-  const handleEditClick = (user: User) => {
-    navigate(`/users/${user.id}/edit`);
+  const handleEditClick = (storefront: Storefront) => {
+    navigate(`/storefronts/${storefront.id}/edit`);
   };
 
-  /**
-   * Handle create button click - navigate to create page
-   */
   const handleCreateClick = () => {
-    navigate(AppHref.createUserRoute);
+    navigate("/storefronts/create"); // or AppHref.createStorefrontRoute if you have it
   };
 
-  /**
-   * Handle delete button click
-   * TODO: Implement delete confirmation dialog
-   */
-  const handleDeleteClick = (user: User) => {
-    // TODO: Show confirmation dialog before deleting
-    console.log("Delete user:", user.id);
+  const handleDeleteClick = (storefront: Storefront) => {
+    // TODO: Implement confirmation dialog + delete mutation
+    console.log("Delete storefront:", storefront.id);
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading users...</p>
+        <p className="text-gray-500">Loading storefronts...</p>
       </div>
     );
   }
@@ -65,7 +55,9 @@ export default function UserList() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-red-500">Error loading users: {error.message}</p>
+        <p className="text-red-500">
+          Error loading storefronts: {(error as Error).message}
+        </p>
       </div>
     );
   }
@@ -75,28 +67,28 @@ export default function UserList() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Users</h1>
+          <h1 className="text-3xl font-bold">Storefronts</h1>
           <p className="text-gray-600 mt-1">
-            Manage your team members and their access
+            Manage your storefronts and sales channels
           </p>
         </div>
 
-        {/* Create User Button */}
-        <PermissionGuard permission="users:create">
+        <PermissionGuard permission="storefronts:create">
           <Button onClick={handleCreateClick}>
             <Plus className="h-4 w-4 mr-2" />
-            Add User
+            Create Storefront
           </Button>
         </PermissionGuard>
       </div>
 
-      {/* Users Table Card */}
+      {/* Storefronts Table Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Team Members ({users?.length || 0})</CardTitle>
+          <CardTitle>Storefronts ({storefronts.length})</CardTitle>
         </CardHeader>
+
         <CardContent>
-          {users && users.length > 0 ? (
+          {storefronts.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -105,10 +97,10 @@ export default function UserList() {
                       Name
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      Email
+                      Slug / URL
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      Role
+                      Domain
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
                       Status
@@ -121,56 +113,69 @@ export default function UserList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                  {storefronts.map((store) => (
+                    <tr key={store.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          {user.full_name}
-                          {user.is_root && (
-                            <Shield className="h-4 w-4 text-yellow-500" />
+                          {store.name}
+                          {store.status === "suspended" && (
+                            <Lock className="h-4 w-4 text-amber-500" />
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{user.email}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
-                          {user.is_root ? "Root" : "Member"}
-                        </span>
+                      <td className="py-3 px-4 text-gray-600">/{store.slug}</td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {store.domain ? (
+                          <a
+                            href={`https://${store.domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <Globe className="h-3.5 w-3.5" />
+                            {store.domain}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`px-2 py-1 rounded text-sm ${
-                            user.is_active
+                          className={`px-2 py-1 rounded text-sm font-medium ${
+                            store.status === "active"
                               ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
+                              : store.status === "suspended"
+                                ? "bg-gray-100 text-gray-700"
+                                : "bg-amber-100 text-amber-700"
                           }`}
                         >
-                          {user.is_active ? "Active" : "Inactive"}
+                          {store.status.charAt(0).toUpperCase() +
+                            store.status.slice(1)}
                         </span>
                       </td>
 
                       {(canUpdate || canDelete) && (
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-2">
-                            <PermissionGuard permission="users:update">
+                            <PermissionGuard permission="storefronts:update">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleEditClick(user)}
-                                title="Edit user"
+                                onClick={() => handleEditClick(store)}
+                                title="Edit storefront"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                             </PermissionGuard>
 
-                            <PermissionGuard permission="users:delete">
-                              {!user.is_root && (
+                            <PermissionGuard permission="storefronts:delete">
+                              {store.status !== "active" && ( // optional: prevent deleting active ones
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="text-red-600 hover:text-red-700"
-                                  onClick={() => handleDeleteClick(user)}
-                                  title="Delete user"
+                                  onClick={() => handleDeleteClick(store)}
+                                  title="Delete storefront"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -186,13 +191,14 @@ export default function UserList() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No users found</p>
+              <Store className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">No storefronts found</p>
+
               {canCreate && (
-                <PermissionGuard permission="users:create">
+                <PermissionGuard permission="storefronts:create">
                   <Button onClick={handleCreateClick}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add First User
+                    Create Your First Storefront
                   </Button>
                 </PermissionGuard>
               )}

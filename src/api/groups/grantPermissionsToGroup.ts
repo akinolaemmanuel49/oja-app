@@ -1,14 +1,10 @@
+import type { GrantPermissionsToGroupResponse } from "@/responses/group";
 import api from "../client";
 
 export async function grantPermissionsToGroup(
   groupId: string,
   permissionCodes: string[],
-): Promise<{
-  message: string;
-  granted_count: number;
-  requested_count: number;
-  already_had: number;
-}> {
+): Promise<GrantPermissionsToGroupResponse> {
   const { data } = await api.post(`/api/groups/${groupId}/permissions/grant`, {
     permission_codes: permissionCodes,
   });

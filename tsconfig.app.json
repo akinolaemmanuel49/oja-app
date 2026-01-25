@@ -12,6 +12,7 @@
       "@/*": ["src/*"], // Map "@/" to the "src/" folder.
       "@components/*": ["src/components/*"], // Example for a specific folder.
       "@utils/*": ["src/utils/*"], // Example for a specific folder.
+      "@pages/*": ["src/pages/*"], // Example for a specific folder.
     },
 
     /* Bundler mode */

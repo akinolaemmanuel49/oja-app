@@ -49,19 +49,3 @@ export type GroupPermission = {
   description?: string;
   granted_at: string;
 };
-
-/**
- * Form data for creating a group
- */
-export type GroupCreateForm = {
-  name: string;
-  description?: string;
-};
-
-/**
- * Form data for updating a group
- */
-export type GroupUpdateForm = {
-  name?: string;
-  description?: string;
-};

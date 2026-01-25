@@ -15,11 +15,8 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { createGroup } from "@/api/groups/createGroup";
-
-type CreateGroupRequest = {
-  name: string;
-  description?: string;
-};
+import type { CreateGroupRequest } from "@/requests/group";
+import { AppHref } from "@/routes/constants";
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -44,7 +41,7 @@ export default function CreateGroup() {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
 
       // Navigate back to groups list
-      navigate("/groups");
+      navigate(AppHref.groupsRoute);
     },
   });
 

@@ -1,10 +1,6 @@
 import type { Group } from "@/types/group";
 import api from "../client";
-
-type CreateGroupRequest = {
-  name: string;
-  description?: string;
-};
+import type { CreateGroupRequest } from "@/requests/group";
 
 export async function createGroup(
   groupData: CreateGroupRequest,

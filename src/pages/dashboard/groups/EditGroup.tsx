@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { updateGroup, type UpdateGroupRequest } from "@/api/groups/updateGroup";
+import { updateGroup } from "@/api/groups/updateGroup";
 import { fetchGroup } from "@/api/groups/fetchGroup";
 import { AppHref } from "@/routes/constants";
+import type { UpdateGroupRequest } from "@/requests/group";
 
 export default function EditGroup() {
   const { groupId } = useParams<{ groupId: string }>();
