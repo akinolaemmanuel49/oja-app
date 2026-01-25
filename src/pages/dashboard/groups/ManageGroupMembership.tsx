@@ -19,7 +19,7 @@ import { listGroupMembers } from "@/api/groups/listGroupMembers";
 import { addUsersToGroupMutationFn } from "@/api/groups/addUsersToGroup";
 import { AppHref } from "@/routes/constants";
 
-export default function AddMembersToGroup() {
+export default function ManageGroupMembership() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

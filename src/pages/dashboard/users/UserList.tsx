@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit, Trash2, Shield, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Shield, Users, View } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchUsers } from "@/api/users/fetchUsers";
@@ -30,6 +30,13 @@ export default function UserList() {
   const canCreate = can("users:create");
   const canUpdate = can("users:update");
   const canDelete = can("users:delete");
+
+  /**
+   * Handle edit button click - navigate to edit page
+   */
+  const handleViewClick = (user: User) => {
+    navigate(`/users/${user.id}`);
+  };
 
   /**
    * Handle edit button click - navigate to edit page
@@ -152,6 +159,17 @@ export default function UserList() {
                       {(canUpdate || canDelete) && (
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-2">
+                            <PermissionGuard permission="users:read">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewClick(user)}
+                                title="View user"
+                              >
+                                <View className="h-4 w-4" />
+                              </Button>
+                            </PermissionGuard>
+
                             <PermissionGuard permission="users:update">
                               <Button
                                 variant="ghost"

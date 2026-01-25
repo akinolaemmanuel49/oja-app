@@ -13,3 +13,16 @@ export type User = {
   created_at: string;
   updated_at: string;
 };
+
+/**
+ * User permission - permission assigned to a user
+ */
+export type UserPermission = {
+  id: string;
+  code: string;
+  name: string;
+  resource: string;
+  action: string;
+  description?: string;
+  granted_at: string;
+};

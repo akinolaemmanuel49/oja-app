@@ -1,3 +1,5 @@
+import { AppHref } from "./constants";
+
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import DashboardHome from "@/pages/dashboard/Home";
@@ -11,11 +13,11 @@ import EditGroup from "@/pages/dashboard/groups/EditGroup";
 import StorefrontList from "@/pages/dashboard/storefronts/StorefrontList";
 import CreateStorefront from "@/pages/dashboard/storefronts/CreateStorefront";
 import EditStorefront from "@/pages/dashboard/storefronts/EditStorefront";
-
-import { AppHref } from "./constants";
 import GroupDetail from "@/pages/dashboard/groups/GroupDetail";
-import AddMembersToGroup from "@/pages/dashboard/groups/AddMembersToGroup";
-import GrantPermissionsToGroup from "@/pages/dashboard/groups/GrantPermissionsToGroup";
+import ManageGroupPermissions from "@/pages/dashboard/groups/ManageGroupPermissions";
+import ManageGroupMembership from "@/pages/dashboard/groups/ManageGroupMembership";
+import ManageUserPermissions from "@/pages/dashboard/users/ManageUserPermissions";
+import UserDetail from "@/pages/dashboard/users/UserDetail";
 
 type RouteConfig = {
   path: string;
@@ -46,6 +48,16 @@ export const protectedRoutes: RouteConfig[] = [
     element: <EditUser />,
     permissions: ["users:update"],
   },
+  {
+    path: "/users/:userId",
+    element: <UserDetail />,
+    permissions: ["users:read"],
+  },
+  {
+    path: "/users/:userId/permissions",
+    element: <ManageUserPermissions />,
+    permissions: ["permissions:grant", "permissions:revoke"],
+  },
   // Group Management
   {
     path: AppHref.groupsRoute,
@@ -58,14 +70,14 @@ export const protectedRoutes: RouteConfig[] = [
     permissions: ["groups:read"],
   },
   {
-    path: "/groups/:groupId/add-members",
-    element: <AddMembersToGroup />,
+    path: "/groups/:groupId/membership",
+    element: <ManageGroupMembership />,
     permissions: ["groups:update"],
   },
   {
-    path: "/groups/:groupId/grant-permissions",
-    element: <GrantPermissionsToGroup />,
-    permissions: ["permissions:grant"],
+    path: "/groups/:groupId/permissions",
+    element: <ManageGroupPermissions />,
+    permissions: ["permissions:grant", "permissions:revoke"],
   },
   {
     path: AppHref.createGroupRoute,

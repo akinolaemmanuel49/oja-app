@@ -21,7 +21,7 @@ import { grantPermissionsToGroupMutationFn } from "@/api/groups/grantPermissions
 import { AppHref } from "@/routes/constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export default function GrantPermissionsToGroup() {
+export default function ManageGroupPermissions() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
