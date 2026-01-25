@@ -5,7 +5,7 @@ export async function grantPermissionsToGroup(
   groupId: string,
   permissionCodes: string[],
 ): Promise<GrantPermissionsToGroupResponse> {
-  const { data } = await api.post(`/api/groups/${groupId}/permissions/grant`, {
+  const { data } = await api.post(`/groups/${groupId}/permissions/grant`, {
     permission_codes: permissionCodes,
   });
   return data;

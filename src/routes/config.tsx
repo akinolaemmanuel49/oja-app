@@ -13,11 +13,14 @@ import CreateStorefront from "@/pages/dashboard/storefronts/CreateStorefront";
 import EditStorefront from "@/pages/dashboard/storefronts/EditStorefront";
 
 import { AppHref } from "./constants";
+import GroupDetail from "@/pages/dashboard/groups/GroupDetail";
+import AddMembersToGroup from "@/pages/dashboard/groups/AddMembersToGroup";
+import GrantPermissionsToGroup from "@/pages/dashboard/groups/GrantPermissionsToGroup";
 
 type RouteConfig = {
   path: string;
   element: React.ReactNode;
-  permission?: string; // Optional: Only for protected routes
+  permissions?: string[]; // Optional: Only for protected routes
 };
 
 export const publicRoutes: RouteConfig[] = [
@@ -28,48 +31,67 @@ export const publicRoutes: RouteConfig[] = [
 export const protectedRoutes: RouteConfig[] = [
   { path: AppHref.dashboardHomeRoute, element: <DashboardHome /> },
   // User Management
-  { path: AppHref.usersRoute, element: <UserList />, permission: "users:read" },
+  {
+    path: AppHref.usersRoute,
+    element: <UserList />,
+    permissions: ["users:read"],
+  },
   {
     path: AppHref.createUserRoute,
     element: <CreateUser />,
-    permission: "users:create",
+    permissions: ["users:create"],
   },
   {
     path: "/users/:userId/edit",
     element: <EditUser />,
-    permission: "users:update",
+    permissions: ["users:update"],
   },
   // Group Management
   {
     path: AppHref.groupsRoute,
     element: <GroupList />,
-    permission: "groups:read",
+    permissions: ["groups:read"],
+  },
+  {
+    path: "/groups/:groupId",
+    element: <GroupDetail />,
+    permissions: ["groups:read"],
+  },
+  {
+    path: "/groups/:groupId/add-members",
+    element: <AddMembersToGroup />,
+    permissions: ["groups:update"],
+  },
+  {
+    path: "/groups/:groupId/grant-permissions",
+    element: <GrantPermissionsToGroup />,
+    permissions: ["permissions:grant"],
   },
   {
     path: AppHref.createGroupRoute,
     element: <CreateGroup />,
-    permission: "groups:create",
+    permissions: ["groups:create"],
   },
   {
     path: "/groups/:groupId/edit",
     element: <EditGroup />,
-    permission: "groups:update",
+    permissions: ["groups:update"],
   },
   // Storefronts
   {
     path: AppHref.storefrontsRoute,
     element: <StorefrontList />,
-    permission: "storefronts:read",
+    permissions: ["storefronts:read"],
   },
   {
     path: AppHref.createStorefrontRoute,
     element: <CreateStorefront />,
-    permission: "storefronts:create",
+    permissions: ["storefronts:create"],
   },
   {
     path: "/storefronts/:storeId/edit",
     element: <EditStorefront />,
-    permission: "storefronts:update",
+    permissions: ["storefronts:update"],
   },
 ];
 

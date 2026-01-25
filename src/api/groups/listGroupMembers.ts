@@ -7,6 +7,6 @@ export async function listGroupMembers(
   ctx: QueryFunctionContext<[string, string]>,
 ): Promise<PaginatedResponse<GroupMember>> {
   const [, groupId] = ctx.queryKey;
-  const { data } = await api.get(`/api/groups/${groupId}/members`);
+  const { data } = await api.get(`/groups/${groupId}/members`);
   return data;
 }

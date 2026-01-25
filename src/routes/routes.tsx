@@ -24,8 +24,8 @@ export default function AppRoutes() {
               key={route.path}
               path={route.path}
               element={
-                route.permission ? (
-                  <PermissionRoute permission={route.permission}>
+                route.permissions ? (
+                  <PermissionRoute permissions={route.permissions}>
                     {route.element}
                   </PermissionRoute>
                 ) : (

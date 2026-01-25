@@ -5,7 +5,7 @@ export async function revokePermissionsFromGroup(
   groupId: string,
   permissionCodes: string[],
 ): Promise<RevokePermissionsFromGroupResponse> {
-  const { data } = await api.post(`/api/groups/${groupId}/permissions/revoke`, {
+  const { data } = await api.post(`/groups/${groupId}/permissions/revoke`, {
     permission_codes: permissionCodes,
   });
   return data;
