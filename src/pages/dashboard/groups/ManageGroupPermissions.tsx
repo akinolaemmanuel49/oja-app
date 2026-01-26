@@ -25,6 +25,8 @@ export default function ManageGroupPermissions() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const groupPermissionsPage = 1;
+  const groupPermissionsPageSize = 20;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPermissionCodes, setSelectedPermissionCodes] = useState<
@@ -47,7 +49,12 @@ export default function ManageGroupPermissions() {
 
   // Fetch current group permissions
   const { data: groupPermissionsData } = useQuery({
-    queryKey: ["group-permissions", groupId!],
+    queryKey: [
+      "group-permissions",
+      groupId!,
+      groupPermissionsPage,
+      groupPermissionsPageSize,
+    ],
     queryFn: listGroupPermissions,
     enabled: !!groupId,
   });

@@ -12,6 +12,8 @@ import { AppHref } from "@/routes/constants";
 export default function UserList() {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const page = 1;
+  const pageSize = 20;
 
   // Fetch users list
   const {
@@ -19,7 +21,7 @@ export default function UserList() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", page, pageSize],
     queryFn: fetchUsers,
     enabled: can("users:read"),
   });

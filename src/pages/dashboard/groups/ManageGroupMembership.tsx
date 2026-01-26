@@ -23,6 +23,10 @@ export default function ManageGroupMembership() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const usersPage = 1;
+  const usersPageSize = 20;
+  const groupMembersPage = 1;
+  const groupMembersPageSize = 20;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
@@ -38,13 +42,18 @@ export default function ManageGroupMembership() {
 
   // Fetch all users in tenant
   const { data: usersData, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", usersPage, usersPageSize],
     queryFn: fetchUsers,
   });
 
   // Fetch current group members
   const { data: membersData } = useQuery({
-    queryKey: ["group-members", groupId!],
+    queryKey: [
+      "group-members",
+      groupId!,
+      groupMembersPage,
+      groupMembersPageSize,
+    ],
     queryFn: listGroupMembers,
     enabled: !!groupId,
   });

@@ -34,6 +34,10 @@ export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const groupMembersPage = 1;
+  const groupMembersPageSize = 20;
+  const groupPermissionsPage = 1;
+  const groupPermissionsPageSize = 20;
   const { can } = usePermissions();
   const [selectedTab, setSelectedTab] = useState("members");
 
@@ -46,14 +50,24 @@ export default function GroupDetail() {
 
   // Fetch group members
   const { data: membersData, isLoading: isLoadingMembers } = useQuery({
-    queryKey: ["group-members", groupId!],
+    queryKey: [
+      "group-members",
+      groupId!,
+      groupMembersPage,
+      groupMembersPageSize,
+    ],
     queryFn: listGroupMembers,
     enabled: !!groupId && selectedTab === "members",
   });
 
   // Fetch group permissions
   const { data: permissionsData, isLoading: isLoadingPermissions } = useQuery({
-    queryKey: ["group-permissions", groupId!],
+    queryKey: [
+      "group-permissions",
+      groupId!,
+      groupPermissionsPage,
+      groupPermissionsPageSize,
+    ],
     queryFn: listGroupPermissions,
     enabled: !!groupId && selectedTab === "permissions",
   });
@@ -117,14 +131,14 @@ export default function GroupDetail() {
    * Navigate to add members page
    */
   const handleAddMembers = () => {
-    navigate(`/groups/${groupId}/add-members`);
+    navigate(`/groups/${groupId}/membership`);
   };
 
   /**
    * Navigate to grant permissions page
    */
   const handleGrantPermissions = () => {
-    navigate(`/groups/${groupId}/grant-permissions`);
+    navigate(`/groups/${groupId}/permissions`);
   };
 
   // Loading state

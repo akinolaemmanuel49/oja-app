@@ -9,7 +9,13 @@ export const fetchStorefronts = async (
   const [, page, pageSize] = ctx.queryKey;
 
   const { data } = await api.get<PaginatedResponse<Storefront>>(
-    `/storefronts?page=${page}&page_size=${pageSize}`,
+    `/storefronts`,
+    {
+      params: {
+        page,
+        page_size: pageSize,
+      },
+    },
   );
 
   return data;

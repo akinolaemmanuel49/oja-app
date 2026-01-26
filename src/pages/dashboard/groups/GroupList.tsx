@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,13 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGroups } from "@/api/groups/fetchGroups";
 import type { Group } from "@/types/group";
 import { AppHref } from "@/routes/constants";
+import { DeleteGroupMutationFn } from "@/api/groups/deleteGroup";
 
 export default function GroupList() {
   const navigate = useNavigate();
   const page = 1;
   const pageSize = 20;
+  const queryClient = useQueryClient();
   const { can } = usePermissions();
 
   // Fetch groups list
@@ -21,6 +23,15 @@ export default function GroupList() {
     queryKey: ["groups", page, pageSize],
     queryFn: fetchGroups,
     enabled: can("groups:read"),
+  });
+
+  // Mutation for deleting group
+  const deleteGroupMutation = useMutation({
+    mutationFn: DeleteGroupMutationFn,
+    onSuccess: () => {
+      // Invalidate groups list and individual group cache
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
   });
 
   const groups = useMemo(() => data?.data || [], [data]);
@@ -50,7 +61,7 @@ export default function GroupList() {
    */
   const handleDeleteClick = (group: Group) => {
     // TODO: Show confirmation dialog before deleting
-    console.log("Delete group:", group.id);
+    deleteGroupMutation.mutate({ groupId: group.id });
   };
 
   /**
@@ -121,11 +132,11 @@ export default function GroupList() {
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span>0 members</span>
+                      <span>{group.member_count} members</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Shield className="h-4 w-4" />
-                      <span>0 permissions</span>
+                      <span>{group.permission_count} permissions</span>
                     </div>
                   </div>
 
