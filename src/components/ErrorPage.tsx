@@ -63,6 +63,21 @@ export default function ErrorPage() {
             <Link to="/">Go Home</Link>
           </Button>
 
+          {status !== 401 && (
+            <Button
+              variant="default"
+              onClick={() => {
+                if (window.history.length > 2) {
+                  navigate(-1);
+                } else {
+                  navigate("/");
+                }
+              }}
+            >
+              Go Back
+            </Button>
+          )}
+
           {status === 401 && (
             <Button asChild variant="outline">
               <Link to={AppHref.loginRoute}>Login</Link>

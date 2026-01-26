@@ -29,6 +29,16 @@ import { listGroupPermissions } from "@/api/groups/listGroupPermissions";
 import { removeUsersFromGroupMutationFn } from "@/api/groups/removeUsersFromGroup";
 import { revokePermissionsFromGroupMutationFn } from "@/api/groups/revokePermissionsFromGroup";
 import { AppHref } from "@/routes/constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -38,6 +48,12 @@ export default function GroupDetail() {
   const groupMembersPageSize = 20;
   const groupPermissionsPage = 1;
   const groupPermissionsPageSize = 20;
+  const [confirmRemoveMember, setConfirmRemoveMember] = useState<string | null>(
+    null,
+  );
+  const [confirmRevokePermission, setConfirmRevokePermission] = useState<
+    string | null
+  >(null);
   const { can } = usePermissions();
   const [selectedTab, setSelectedTab] = useState("members");
 
@@ -69,7 +85,7 @@ export default function GroupDetail() {
       groupPermissionsPageSize,
     ],
     queryFn: listGroupPermissions,
-    enabled: !!groupId && selectedTab === "permissions",
+    enabled: !!groupId,
   });
 
   const members = useMemo(() => membersData?.data || [], [membersData]);
@@ -107,25 +123,31 @@ export default function GroupDetail() {
    * Handle removing a member from the group
    */
   const handleRemoveMember = (userId: string) => {
-    if (!groupId) return;
-    // TODO: Add confirmation dialog
-    removeMemberMutation.mutate({
-      groupId,
-      userIds: [userId],
-    });
+    setConfirmRemoveMember(userId);
   };
+  // const handleRemoveMember = (userId: string) => {
+  //   if (!groupId) return;
+  //   // TODO: Add confirmation dialog
+  //   removeMemberMutation.mutate({
+  //     groupId,
+  //     userIds: [userId],
+  //   });
+  // };
 
   /**
    * Handle revoking a permission from the group
    */
   const handleRevokePermission = (permissionCode: string) => {
-    if (!groupId) return;
-    // TODO: Add confirmation dialog
-    revokePermissionMutation.mutate({
-      groupId,
-      permissionCodes: [permissionCode],
-    });
+    setConfirmRevokePermission(permissionCode);
   };
+  // const handleRevokePermission = (permissionCode: string) => {
+  //   if (!groupId) return;
+  //   // TODO: Add confirmation dialog
+  //   revokePermissionMutation.mutate({
+  //     groupId,
+  //     permissionCodes: [permissionCode],
+  //   });
+  // };
 
   /**
    * Navigate to add members page
@@ -406,6 +428,75 @@ export default function GroupDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+      <AlertDialog
+        open={!!confirmRemoveMember}
+        onOpenChange={() => setConfirmRemoveMember(null)}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This user will lose all permissions inherited from this group.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-red-500 bg-black"
+              onClick={() => {
+                if (confirmRemoveMember && groupId) {
+                  removeMemberMutation.mutate({
+                    groupId,
+                    userIds: [confirmRemoveMember],
+                  });
+                }
+                setConfirmRemoveMember(null);
+              }}
+            >
+              Remove Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmRevokePermission}
+        onOpenChange={() => setConfirmRevokePermission(null)}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Revoke permission{" "}
+              <span className="font-mono text-sm bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded">
+                {confirmRevokePermission}
+              </span>
+              ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              All members of this group will lose this permission. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-red-500 bg-black"
+              onClick={() => {
+                if (confirmRevokePermission && groupId) {
+                  revokePermissionMutation.mutate({
+                    groupId,
+                    permissionCodes: [confirmRevokePermission],
+                  });
+                }
+                setConfirmRevokePermission(null);
+              }}
+            >
+              Revoke Permission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -58,7 +58,13 @@ export default function ManageGroupMembership() {
     enabled: !!groupId,
   });
 
-  const users = useMemo(() => usersData?.data || [], [usersData]);
+  const users = useMemo(() => {
+    const users = usersData?.data || [];
+    return users.filter((user) => user.is_root === false);
+  }, [usersData]);
+
+  console.log({ users });
+
   const currentMemberIds = useMemo(
     () => new Set(membersData?.data?.map((m) => m.id) || []),
     [membersData],
@@ -222,9 +228,15 @@ export default function ManageGroupMembership() {
                 ) : (
                   <div className="p-8 text-center text-gray-500">
                     {searchQuery ? (
-                      <p>No users found matching "{searchQuery}"</p>
+                      <p>
+                        No users found matching "{searchQuery}" (Root user is
+                        excluded)
+                      </p>
                     ) : (
-                      <p>All users are already members of this group</p>
+                      <p>
+                        All valid users are already members of this group (Root
+                        user is excluded)
+                      </p>
                     )}
                   </div>
                 )}

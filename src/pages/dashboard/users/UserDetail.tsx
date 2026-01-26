@@ -21,6 +21,7 @@ import {
   Trash2,
   Edit,
   UserMinus,
+  Crown,
 } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -32,6 +33,16 @@ import { listUserGroups } from "@/api/users/listUserGroups";
 import { removeUserFromGroupMutationFn } from "@/api/users/removeUserFromGroup";
 import { addUserToGroupMutationFn } from "@/api/users/addUserToGroup";
 import { fetchGroups } from "@/api/groups/fetchGroups";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function UserDetail() {
   const { userId } = useParams<{ userId: string }>();
@@ -42,7 +53,13 @@ export default function UserDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { can } = usePermissions();
-  const [selectedTab, setSelectedTab] = useState("members");
+  const [selectedTab, setSelectedTab] = useState("groups");
+  const [confirmRemoveFromGroup, setConfirmRemoveFromGroup] = useState<
+    string | null
+  >(null);
+  const [confirmRevokeUserPerm, setConfirmRevokeUserPerm] = useState<
+    string | null
+  >(null);
 
   // Fetch user data
   const { data: user, isLoading: isLoadingUser } = useQuery({
@@ -95,7 +112,7 @@ export default function UserDetail() {
       userPermissionsPageSize,
     ],
     queryFn: listUserPermissions,
-    enabled: !!userId && selectedTab === "permissions",
+    enabled: !!userId,
   });
 
   const permissions = useMemo(
@@ -106,6 +123,9 @@ export default function UserDetail() {
   // Permission checks
   const canUpdate = can("groups:update");
   const canGrantPermissions = can("permissions:grant");
+
+  // Check if user is root (superuser)
+  const isRootUser = user?.is_root === true;
 
   // Remove user from group mutation
   const removeUserFromGroupMutation = useMutation({
@@ -142,19 +162,15 @@ export default function UserDetail() {
    * Handle removing a member from the group
    */
   const handleRemoveUserFromGroup = (groupId: string) => {
-    if (!userId) return;
-    // TODO: Add confirmation dialog
-    removeUserFromGroupMutation.mutate({
-      userId,
-      groupId,
-    });
+    if (!userId || isRootUser) return;
+    setConfirmRemoveFromGroup(groupId);
   };
 
   /**
    * Handle adding user to a group
    */
   const handleAddUserToGroup = (groupId: string) => {
-    if (!userId) return;
+    if (!userId || isRootUser) return;
     // TODO: Add confirmation dialog
     addUserToGroupMutation.mutate({
       userId,
@@ -166,18 +182,15 @@ export default function UserDetail() {
    * Handle revoking a permission from the group
    */
   const handleRevokePermission = (permissionCode: string) => {
-    if (!userId) return;
-    // TODO: Add confirmation dialog
-    revokePermissionMutation.mutate({
-      userId,
-      permissionCodes: [permissionCode],
-    });
+    if (!userId || isRootUser) return;
+    setConfirmRevokeUserPerm(permissionCode);
   };
 
   /**
    * Navigate to grant permissions page
    */
   const handleGrantPermissions = () => {
+    if (isRootUser) return;
     navigate(`/users/${userId}/permissions`);
   };
 
@@ -223,52 +236,94 @@ export default function UserDetail() {
         </Button>
 
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{user.full_name}</h1>
-            <p className="text-gray-600 mt-2">{user.email || "No email"}</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold">{user.full_name}</h1>
+                {isRootUser && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">
+                    <Crown className="h-4 w-4" />
+                    <span>Root User</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-600 mt-2">{user.email || "No email"}</p>
+            </div>
           </div>
 
           <PermissionGuard permission="users:update">
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/users/${userId}/edit`)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit User
-            </Button>
+            {!isRootUser && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/users/${userId}/edit`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit User
+              </Button>
+            )}
           </PermissionGuard>
         </div>
       </div>
+
+      {/* Root User Alert */}
+      {isRootUser && (
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <Crown className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-700">
+            This user is a root user with full system access. Root users cannot
+            be added to groups or have their permissions modified as they
+            inherently have all permissions.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Groups
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Groups
+              </CardTitle>
+              {isRootUser && (
+                <span className="text-xs text-gray-500 italic">
+                  Root users don't need groups
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-gray-400" />
               <span className="text-2xl font-bold">{userGroups.length}</span>
-              <span className="text-gray-500 text-sm">
-                / {combinedGroups.length} total
-              </span>
+              {!isRootUser && (
+                <span className="text-gray-500 text-sm">
+                  / {combinedGroups.length} total
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Permissions
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Permissions
+              </CardTitle>
+              {isRootUser && (
+                <span className="text-xs text-gray-500 italic">
+                  Has all permissions
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-gray-400" />
-              <span className="text-2xl font-bold">{permissions.length}</span>
+              <span className="text-2xl font-bold">
+                {isRootUser ? "∞" : permissions.length}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -277,35 +332,38 @@ export default function UserDetail() {
       {/* Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="members">Groups</TabsTrigger>
+          <TabsTrigger value="groups">Groups</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
         </TabsList>
 
         {/* Groups Tab */}
-        <TabsContent value="members" className="mt-6">
+        <TabsContent value="groups" className="mt-6">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Groups</CardTitle>
                   <CardDescription>
-                    Groups that this user belongs to and inherits permissions
-                    from.
+                    {isRootUser
+                      ? "Root users have full system access and don't need group membership."
+                      : "Groups that this user belongs to and inherits permissions from."}
                   </CardDescription>
                 </div>
 
-                <PermissionGuard
-                  permissions={["users:update", "groups:update"]}
-                >
-                  <Button
-                    onClick={() => navigate(AppHref.groupsRoute)}
-                    size="sm"
-                    variant="outline"
+                {!isRootUser && (
+                  <PermissionGuard
+                    permissions={["users:update", "groups:update"]}
                   >
-                    <Users className="h-4 w-4 mr-2" />
-                    Manage All Groups
-                  </Button>
-                </PermissionGuard>
+                    <Button
+                      onClick={() => navigate(AppHref.groupsRoute)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage All Groups
+                    </Button>
+                  </PermissionGuard>
+                )}
               </div>
             </CardHeader>
 
@@ -313,6 +371,18 @@ export default function UserDetail() {
               {isLoadingGroups || !allGroupsData ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : isRootUser ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <Crown className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                  <p className="text-gray-600 font-medium mb-2">
+                    Root User - Full System Access
+                  </p>
+                  <p className="text-gray-500 text-sm max-w-md mx-auto">
+                    This user is a root user and inherently has access to all
+                    system functionality. Group membership is not applicable for
+                    root users.
+                  </p>
                 </div>
               ) : combinedGroups.length > 0 ? (
                 <div className="space-y-3">
@@ -342,7 +412,10 @@ export default function UserDetail() {
                             size="sm"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleRemoveUserFromGroup(group.id)}
-                            disabled={removeUserFromGroupMutation.isPending}
+                            disabled={
+                              removeUserFromGroupMutation.isPending ||
+                              isRootUser
+                            }
                           >
                             <UserMinus className="h-4 w-4 mr-2" />
                             Remove
@@ -353,7 +426,9 @@ export default function UserDetail() {
                             size="sm"
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={() => handleAddUserToGroup(group.id)}
-                            disabled={addUserToGroupMutation.isPending}
+                            disabled={
+                              addUserToGroupMutation.isPending || isRootUser
+                            }
                           >
                             <UserPlus className="h-4 w-4 mr-2" />
                             Add to Group
@@ -368,7 +443,7 @@ export default function UserDetail() {
                   <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No groups available</p>
 
-                  {canUpdate && (
+                  {canUpdate && !isRootUser && (
                     <Button
                       onClick={() => navigate(AppHref.groupsRoute)}
                       size="sm"
@@ -383,7 +458,7 @@ export default function UserDetail() {
           </Card>
         </TabsContent>
 
-        {/* Permissions Tab - Remains the same */}
+        {/* Permissions Tab */}
         <TabsContent value="permissions" className="mt-6">
           <Card>
             <CardHeader>
@@ -391,16 +466,24 @@ export default function UserDetail() {
                 <div>
                   <CardTitle>User Permissions</CardTitle>
                   <CardDescription>
-                    Permissions assigned to this user
+                    {isRootUser
+                      ? "Root users have all permissions by default."
+                      : "Permissions assigned to this user"}
                   </CardDescription>
                 </div>
 
-                <PermissionGuard permission="permissions:grant">
-                  <Button onClick={handleGrantPermissions} size="sm">
-                    <ShieldPlus className="h-4 w-4 mr-2" />
-                    Grant Permissions
-                  </Button>
-                </PermissionGuard>
+                {!isRootUser && (
+                  <PermissionGuard permission="permissions:grant">
+                    <Button
+                      onClick={handleGrantPermissions}
+                      size="sm"
+                      disabled={isRootUser}
+                    >
+                      <ShieldPlus className="h-4 w-4 mr-2" />
+                      Grant Permissions
+                    </Button>
+                  </PermissionGuard>
+                )}
               </div>
             </CardHeader>
 
@@ -408,6 +491,38 @@ export default function UserDetail() {
               {isLoadingPermissions ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : isRootUser ? (
+                <div className="text-center py-12 bg-yellow-50 rounded-lg">
+                  <Crown className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                  <div className="max-w-md mx-auto">
+                    <p className="text-gray-700 font-medium mb-3">
+                      Root User Permission Summary
+                    </p>
+                    <div className="space-y-3 text-left">
+                      <div className="flex items-center gap-2 p-3 bg-white rounded border">
+                        <Shield className="h-5 w-5 text-yellow-500" />
+                        <div>
+                          <p className="font-medium">Full System Access</p>
+                          <p className="text-sm text-gray-600">
+                            Has all permissions including administrative
+                            functions
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded border">
+                        <code className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
+                          *
+                        </code>
+                        <div>
+                          <p className="font-medium">Wildcard Permission</p>
+                          <p className="text-sm text-gray-600">
+                            Superuser access to all system resources
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : permissions.length > 0 ? (
                 <div className="space-y-3">
@@ -449,7 +564,9 @@ export default function UserDetail() {
                           onClick={() =>
                             handleRevokePermission(permission.code)
                           }
-                          disabled={revokePermissionMutation.isPending}
+                          disabled={
+                            revokePermissionMutation.isPending || isRootUser
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -461,10 +578,10 @@ export default function UserDetail() {
                 <div className="text-center py-12">
                   <Shield className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">
-                    No permissions assigned to this group
+                    No permissions assigned to this user
                   </p>
 
-                  {canGrantPermissions && (
+                  {canGrantPermissions && !isRootUser && (
                     <Button onClick={handleGrantPermissions} size="sm">
                       <ShieldPlus className="h-4 w-4 mr-2" />
                       Grant First Permission
@@ -476,6 +593,74 @@ export default function UserDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+      <AlertDialog
+        open={!!confirmRemoveFromGroup}
+        onOpenChange={() => setConfirmRemoveFromGroup(null)}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove user from group?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This user will lose all permissions inherited from this group.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-red-500 bg-black"
+              onClick={() => {
+                if (confirmRemoveFromGroup && userId) {
+                  removeUserFromGroupMutation.mutate({
+                    userId,
+                    groupId: confirmRemoveFromGroup,
+                  });
+                }
+                setConfirmRemoveFromGroup(null);
+              }}
+            >
+              Remove User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmRevokeUserPerm}
+        onOpenChange={() => setConfirmRevokeUserPerm(null)}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Revoke permission{" "}
+              <span className="font-mono text-sm bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded">
+                {confirmRevokeUserPerm}
+              </span>
+              ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The user will lose this permission. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-red-500 bg-black"
+              onClick={() => {
+                if (confirmRevokeUserPerm && userId) {
+                  revokePermissionMutation.mutate({
+                    userId,
+                    permissionCodes: [confirmRevokeUserPerm],
+                  });
+                }
+                setConfirmRevokeUserPerm(null);
+              }}
+            >
+              Revoke Permission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

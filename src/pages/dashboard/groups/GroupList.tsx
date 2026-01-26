@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,16 @@ import { fetchGroups } from "@/api/groups/fetchGroups";
 import type { Group } from "@/types/group";
 import { AppHref } from "@/routes/constants";
 import { DeleteGroupMutationFn } from "@/api/groups/deleteGroup";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function GroupList() {
   const navigate = useNavigate();
@@ -17,6 +27,10 @@ export default function GroupList() {
   const pageSize = 20;
   const queryClient = useQueryClient();
   const { can } = usePermissions();
+
+  const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | null>(
+    null,
+  );
 
   // Fetch groups list
   const { data, isLoading, error } = useQuery({
@@ -57,11 +71,9 @@ export default function GroupList() {
 
   /**
    * Handle delete button click
-   * TODO: Implement delete confirmation dialog
    */
   const handleDeleteClick = (group: Group) => {
-    // TODO: Show confirmation dialog before deleting
-    deleteGroupMutation.mutate({ groupId: group.id });
+    setConfirmDeleteGroup(group.id);
   };
 
   /**
@@ -200,6 +212,38 @@ export default function GroupList() {
           </CardContent>
         </Card>
       )}
+      <AlertDialog
+        open={!!confirmDeleteGroup}
+        onOpenChange={() => setConfirmDeleteGroup(null)}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete group?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the group and remove all member
+              associations.
+              <strong className="text-destructive">
+                {" "}
+                This action cannot be undone.
+              </strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-red-500 bg-black"
+              onClick={() => {
+                if (confirmDeleteGroup) {
+                  deleteGroupMutation.mutate({ groupId: confirmDeleteGroup });
+                }
+                setConfirmDeleteGroup(null);
+              }}
+            >
+              Delete Group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
