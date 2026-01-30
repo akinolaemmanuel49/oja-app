@@ -8,6 +8,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { fetchUsers } from "@/api/users/fetchUsers";
 import type { User } from "@/types/user";
 import { AppHref } from "@/routes/constants";
+import { useMemo } from "react";
 
 export default function UserList() {
   const navigate = useNavigate();
@@ -26,7 +27,14 @@ export default function UserList() {
     enabled: can("users:read"),
   });
 
-  const users = paginatedResponse?.data;
+  const users = useMemo(
+    () => paginatedResponse?.data ?? [],
+    [paginatedResponse],
+  );
+  const totalUserCount = useMemo(
+    () => paginatedResponse?.total || 0,
+    [paginatedResponse],
+  );
 
   // Permission checks
   const canCreate = can("users:create");
@@ -105,7 +113,7 @@ export default function UserList() {
           <CardTitle>Team Members ({users?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
-          {users && users.length > 0 ? (
+          {users && totalUserCount > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -178,6 +186,7 @@ export default function UserList() {
                                 size="sm"
                                 onClick={() => handleEditClick(user)}
                                 title="Edit user"
+                                className="hover:cursor-pointer"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>

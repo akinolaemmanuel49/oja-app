@@ -249,7 +249,7 @@ export default function ManageGroupMembership() {
                   disabled={
                     selectedUserIds.size === 0 || addMembersMutation.isPending
                   }
-                  className="flex-1"
+                  className="flex-1 hover:cursor-pointer"
                 >
                   {addMembersMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -263,6 +263,7 @@ export default function ManageGroupMembership() {
                   variant="outline"
                   onClick={() => navigate(`/groups/${groupId}`)}
                   disabled={addMembersMutation.isPending}
+                  className="hover:cursor-pointer"
                 >
                   Cancel
                 </Button>

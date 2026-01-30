@@ -33,7 +33,11 @@ export default function GroupList() {
   );
 
   // Fetch groups list
-  const { data, isLoading, error } = useQuery({
+  const {
+    data: paginatedResponse,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["groups", page, pageSize],
     queryFn: fetchGroups,
     enabled: can("groups:read"),
@@ -48,7 +52,14 @@ export default function GroupList() {
     },
   });
 
-  const groups = useMemo(() => data?.data || [], [data]);
+  const groups = useMemo(
+    () => paginatedResponse?.data ?? [],
+    [paginatedResponse],
+  );
+  const totalGroupCount = useMemo(
+    () => paginatedResponse?.total ?? 0,
+    [paginatedResponse],
+  );
 
   // Permission checks
   const canCreate = can("groups:create");
@@ -123,7 +134,7 @@ export default function GroupList() {
       </div>
 
       {/* Groups Grid */}
-      {groups.length > 0 ? (
+      {totalGroupCount > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
             <Card key={group.id} className="hover:shadow-lg transition-shadow">
@@ -171,6 +182,7 @@ export default function GroupList() {
                             size="sm"
                             onClick={() => handleEditClick(group)}
                             title="Edit group"
+                            className="hover:cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -229,9 +241,11 @@ export default function GroupList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="text-red-500 bg-black"
+              className="text-red-500 bg-black hover:cursor-pointer"
               onClick={() => {
                 if (confirmDeleteGroup) {
                   deleteGroupMutation.mutate({ groupId: confirmDeleteGroup });

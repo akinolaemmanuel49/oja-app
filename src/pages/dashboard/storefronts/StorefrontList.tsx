@@ -7,6 +7,7 @@ import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchStorefronts } from "@/api/storefronts/fetchStorefronts";
 import type { Storefront } from "@/types/storefront";
+import { useMemo } from "react";
 
 export default function StorefrontList() {
   const navigate = useNavigate();
@@ -25,7 +26,14 @@ export default function StorefrontList() {
     enabled: can("storefronts:read"),
   });
 
-  const storefronts = paginatedResponse?.data ?? [];
+  const storefronts = useMemo(
+    () => paginatedResponse?.data ?? [],
+    [paginatedResponse],
+  );
+  const totalStorefrontCount = useMemo(
+    () => paginatedResponse?.total || 0,
+    [paginatedResponse],
+  );
 
   const canCreate = can("storefronts:create");
   const canUpdate = can("storefronts:update");
@@ -84,11 +92,11 @@ export default function StorefrontList() {
       {/* Storefronts Table Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Storefronts ({storefronts.length})</CardTitle>
+          <CardTitle>Storefronts ({totalStorefrontCount})</CardTitle>
         </CardHeader>
 
         <CardContent>
-          {storefronts.length > 0 ? (
+          {totalStorefrontCount > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -118,7 +126,7 @@ export default function StorefrontList() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           {store.name}
-                          {store.status === "suspended" && (
+                          {store.status === "inactive" && (
                             <Lock className="h-4 w-4 text-amber-500" />
                           )}
                         </div>
@@ -144,7 +152,7 @@ export default function StorefrontList() {
                           className={`px-2 py-1 rounded text-sm font-medium ${
                             store.status === "active"
                               ? "bg-green-100 text-green-700"
-                              : store.status === "suspended"
+                              : store.status === "inactive"
                                 ? "bg-gray-100 text-gray-700"
                                 : "bg-amber-100 text-amber-700"
                           }`}
@@ -163,6 +171,7 @@ export default function StorefrontList() {
                                 size="sm"
                                 onClick={() => handleEditClick(store)}
                                 title="Edit storefront"
+                                className="hover:cursor-pointer"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>

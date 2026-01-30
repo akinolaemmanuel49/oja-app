@@ -18,6 +18,9 @@ import ManageGroupPermissions from "@/pages/dashboard/groups/ManageGroupPermissi
 import ManageGroupMembership from "@/pages/dashboard/groups/ManageGroupMembership";
 import ManageUserPermissions from "@/pages/dashboard/users/ManageUserPermissions";
 import UserDetail from "@/pages/dashboard/users/UserDetail";
+import EditProduct from "@/pages/dashboard/products/EditProduct";
+import CreateProduct from "@/pages/dashboard/products/CreateProduct";
+import ProductList from "@/pages/dashboard/products/ProductList";
 
 type RouteConfig = {
   path: string;
@@ -104,6 +107,22 @@ export const protectedRoutes: RouteConfig[] = [
     path: "/storefronts/:storeId/edit",
     element: <EditStorefront />,
     permissions: ["storefronts:update"],
+  },
+  // Products
+  {
+    path: AppHref.productsRoute,
+    element: <ProductList />,
+    permissions: ["products:read"],
+  },
+  {
+    path: AppHref.createProductRoute,
+    element: <CreateProduct />,
+    permissions: ["products:create"],
+  },
+  {
+    path: "/products/:productId/edit",
+    element: <EditProduct />,
+    permissions: ["products:update"],
   },
 ];
 

@@ -1,4 +1,4 @@
-export type StorefrontStatus = "active" | "suspended" | "deleted";
+export type StorefrontStatus = "active" | "inactive";
 
 /**
  * Storefront type - represents a storefront

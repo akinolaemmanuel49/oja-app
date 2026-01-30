@@ -441,9 +441,11 @@ export default function GroupDetail() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="text-red-500 bg-black"
+              className="text-red-500 bg-black hover:cursor-pointer"
               onClick={() => {
                 if (confirmRemoveMember && groupId) {
                   removeMemberMutation.mutate({
@@ -479,9 +481,11 @@ export default function GroupDetail() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="text-red-500 bg-black"
+              className="text-red-500 bg-black hover:cursor-pointer"
               onClick={() => {
                 if (confirmRevokePermission && groupId) {
                   revokePermissionMutation.mutate({

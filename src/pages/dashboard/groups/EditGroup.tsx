@@ -256,6 +256,7 @@ export default function EditGroup() {
                   variant="outline"
                   onClick={() => navigate("/groups")}
                   disabled={updateGroupMutation.isPending}
+                  className="hover:cursor-pointer"
                 >
                   Cancel
                 </Button>

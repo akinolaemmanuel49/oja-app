@@ -236,7 +236,7 @@ export default function CreateUser() {
                 <Button
                   type="submit"
                   disabled={createUserMutation.isPending}
-                  className="flex-1"
+                  className="flex-1 hover:cursor-pointer"
                 >
                   {createUserMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -248,6 +248,7 @@ export default function CreateUser() {
                   variant="outline"
                   onClick={() => navigate(AppHref.usersRoute)}
                   disabled={createUserMutation.isPending}
+                  className="hover:cursor-pointer"
                 >
                   Cancel
                 </Button>

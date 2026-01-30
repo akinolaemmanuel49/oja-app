@@ -240,7 +240,7 @@ export default function EditUser() {
                 <Button
                   type="submit"
                   disabled={updateUserMutation.isPending}
-                  className="flex-1"
+                  className="flex-1 hover:cursor-pointer"
                 >
                   {updateUserMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -252,6 +252,7 @@ export default function EditUser() {
                   variant="outline"
                   onClick={() => navigate("/users")}
                   disabled={updateUserMutation.isPending}
+                  className="hover:cursor-pointer"
                 >
                   Cancel
                 </Button>

@@ -197,7 +197,7 @@ export default function CreateGroup() {
                 <Button
                   type="submit"
                   disabled={createGroupMutation.isPending}
-                  className="flex-1"
+                  className="flex-1 hover:cursor-pointer"
                 >
                   {createGroupMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -209,6 +209,7 @@ export default function CreateGroup() {
                   variant="outline"
                   onClick={() => navigate("/groups")}
                   disabled={createGroupMutation.isPending}
+                  className="hover:cursor-pointer"
                 >
                   Cancel
                 </Button>

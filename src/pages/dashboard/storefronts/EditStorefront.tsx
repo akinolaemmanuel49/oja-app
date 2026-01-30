@@ -232,9 +232,9 @@ function EditStorefrontForm({ storefront }: { storefront: Storefront }) {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -243,7 +243,7 @@ function EditStorefrontForm({ storefront }: { storefront: Storefront }) {
               <Button
                 type="submit"
                 disabled={updateStorefrontMutation.isPending}
-                className="flex-1"
+                className="flex-1 hover:cursor-pointer"
               >
                 {updateStorefrontMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -254,6 +254,7 @@ function EditStorefrontForm({ storefront }: { storefront: Storefront }) {
                 type="button"
                 variant="outline"
                 onClick={() => navigate(AppHref.storefrontsRoute)}
+                className="hover:cursor-pointer"
               >
                 Cancel
               </Button>

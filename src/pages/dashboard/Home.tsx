@@ -1,13 +1,27 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Store, Package, Users } from "lucide-react";
+import { Store, Package, Users, GroupIcon } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardData } from "@/api/analytics/getDashboardData";
+import { useMemo } from "react";
 
 export default function DashboardHome() {
-  const { userWithPermissions, isLoading } = useAuth();
+  const { userWithPermissions, isLoading: isLoadingAuth } = useAuth();
 
-  if (isLoading) {
+  // Fetch user data
+  const { data, isLoading: isLoadingDashboard } = useQuery({
+    queryKey: ["analytics-dashboard"],
+    queryFn: getDashboardData,
+  });
+
+  const dashboardData = useMemo(() => {
+    if (!data) return null;
+    return data;
+  }, [data]);
+
+  if (isLoadingAuth || isLoadingDashboard) {
     return (
       <div className="flex h-screen items-center justify-center">
         Loading...
@@ -27,7 +41,9 @@ export default function DashboardHome() {
               <Store className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {dashboardData?.TotalActiveStorefrontsCount}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Active storefronts
               </p>
@@ -46,7 +62,9 @@ export default function DashboardHome() {
               <Package className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {dashboardData?.TotalVisibleProductsCount}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Products in catalog
               </p>
@@ -61,14 +79,39 @@ export default function DashboardHome() {
         <PermissionGuard permission="users:read">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team</CardTitle>
+              <CardTitle className="text-sm font-medium">Users</CardTitle>
               <Users className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1</div>
-              <p className="text-xs text-muted-foreground">Team members</p>
+              <div className="text-2xl font-bold">
+                {dashboardData?.TotalUsersCount}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Members of your organization
+              </p>
               <Button variant="link" className="mt-4 px-0" asChild>
-                <a href="/users">Manage team →</a>
+                <a href="/users">Manage users →</a>
+              </Button>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
+
+        {/* Groups Card - Only visible if user can read groups */}
+        <PermissionGuard permission="groups:read">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Groups</CardTitle>
+              <GroupIcon className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {dashboardData?.TotalGroupsCount}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Groups in your organization
+              </p>
+              <Button variant="link" className="mt-4 px-0" asChild>
+                <a href="/groups">Manage groups →</a>
               </Button>
             </CardContent>
           </Card>

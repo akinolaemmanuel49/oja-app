@@ -319,7 +319,7 @@ export default function ManageGroupPermissions() {
                     selectedPermissionCodes.size === 0 ||
                     grantPermissionsMutation.isPending
                   }
-                  className="flex-1"
+                  className="flex-1 hover:cursor-pointer"
                 >
                   {grantPermissionsMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -333,6 +333,7 @@ export default function ManageGroupPermissions() {
                   variant="outline"
                   onClick={() => navigate(`/groups/${groupId}`)}
                   disabled={grantPermissionsMutation.isPending}
+                  className="hover:cursor-pointer"
                 >
                   Cancel
                 </Button>
