@@ -1,7 +1,7 @@
-import api from "../client";
+import apiClient from "../client";
 
 export const removeUserFromGroup = async (userId: string, groupId: string) => {
-  const { data } = await api.post(`/users/${userId}/groups/remove`, {
+  const { data } = await apiClient.post(`/users/${userId}/groups/remove`, {
     group_id: groupId,
   });
 

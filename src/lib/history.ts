@@ -1,9 +1,9 @@
-import api from "@/api/client";
+import apiClient from "@/api/client";
 import { createBrowserHistory } from "history";
 
 const history = createBrowserHistory();
 
-api.interceptors.response.use(
+apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err.response?.status;

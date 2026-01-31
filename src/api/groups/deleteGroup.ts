@@ -1,7 +1,7 @@
-import api from "../client";
+import apiClient from "../client";
 
 export const deleteGroup = async (groupId: string) => {
-  const { data } = await api.delete(`/groups/${groupId}`);
+  const { data } = await apiClient.delete(`/groups/${groupId}`);
   return data;
 };
 

@@ -1,5 +1,5 @@
-import api from "../client";
+import apiClient from "../client";
 
 export const logout = async (): Promise<void> => {
-  await api.post("/auth/logout");
+  await apiClient.post("/auth/logout");
 };

@@ -1,11 +1,11 @@
-import api from "../client";
+import apiClient from "../client";
 import type { RevokePermissionsFromUserResponse } from "@/responses/user";
 
 export async function revokePermissionsFromUser(
   userId: string,
   permissionCodes: string[],
 ): Promise<RevokePermissionsFromUserResponse> {
-  const { data } = await api.post(`/users/${userId}/permissions/revoke`, {
+  const { data } = await apiClient.post(`/users/${userId}/permissions/revoke`, {
     permission_codes: permissionCodes,
   });
   return data;

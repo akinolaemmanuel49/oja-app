@@ -1,5 +1,5 @@
 import type { QueryFunctionContext } from "@tanstack/react-query";
-import api from "../client";
+import apiClient from "../client";
 import type { PaginatedResponse } from "@/responses/paginatedResponse";
 import type { Storefront } from "@/types/storefront";
 
@@ -8,7 +8,7 @@ export const fetchStorefronts = async (
 ): Promise<PaginatedResponse<Storefront>> => {
   const [, page, pageSize] = ctx.queryKey;
 
-  const { data } = await api.get<PaginatedResponse<Storefront>>(
+  const { data } = await apiClient.get<PaginatedResponse<Storefront>>(
     `/storefronts`,
     {
       params: {

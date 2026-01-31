@@ -1,11 +1,11 @@
 import type { AddUsersToGroupResponse } from "@/responses/group";
-import api from "../client";
+import apiClient from "../client";
 
 export async function addUsersToGroup(
   groupId: string,
   userIds: string[],
 ): Promise<AddUsersToGroupResponse> {
-  const { data } = await api.post(`/groups/${groupId}/members/add`, {
+  const { data } = await apiClient.post(`/groups/${groupId}/members/add`, {
     user_ids: userIds,
   });
   return data;

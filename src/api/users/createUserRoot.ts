@@ -1,7 +1,7 @@
 import type { CreateUserRequest } from "@/requests/user";
-import api from "../client";
+import apiClient from "../client";
 
 export const createUserRoot = async (data: CreateUserRequest) => {
-  const { data: response } = await api.post("/users/root", data);
+  const { data: response } = await apiClient.post("/users/root", data);
   return response;
 };

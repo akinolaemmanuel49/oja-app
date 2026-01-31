@@ -21,6 +21,8 @@ import UserDetail from "@/pages/dashboard/users/UserDetail";
 import EditProduct from "@/pages/dashboard/products/EditProduct";
 import CreateProduct from "@/pages/dashboard/products/CreateProduct";
 import ProductList from "@/pages/dashboard/products/ProductList";
+import StorefrontProducts from "@/pages/dashboard/storefronts/StorefrontProducts";
+import ProductDetail from "@/pages/dashboard/products/ProductDetail";
 
 type RouteConfig = {
   path: string;
@@ -108,6 +110,11 @@ export const protectedRoutes: RouteConfig[] = [
     element: <EditStorefront />,
     permissions: ["storefronts:update"],
   },
+  {
+    path: "/storefronts/:storeId/products",
+    element: <StorefrontProducts />,
+    permissions: ["storefronts:update"],
+  },
   // Products
   {
     path: AppHref.productsRoute,
@@ -123,6 +130,11 @@ export const protectedRoutes: RouteConfig[] = [
     path: "/products/:productId/edit",
     element: <EditProduct />,
     permissions: ["products:update"],
+  },
+  {
+    path: "/products/:productId",
+    element: <ProductDetail />,
+    permissions: ["products:read"],
   },
 ];
 

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit, Trash2, Globe, Store, Lock } from "lucide-react";
+import { Plus, Edit, Trash2, Globe, Store, Lock, Package } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchStorefronts } from "@/api/storefronts/fetchStorefronts";
@@ -43,8 +43,12 @@ export default function StorefrontList() {
     navigate(`/storefronts/${storefront.id}/edit`);
   };
 
+  const handleProductsClick = (storefront: Storefront) => {
+    navigate(`/storefronts/${storefront.id}/products`);
+  };
+
   const handleCreateClick = () => {
-    navigate("/storefronts/create"); // or AppHref.createStorefrontRoute if you have it
+    navigate("/storefronts/create");
   };
 
   const handleDeleteClick = (storefront: Storefront) => {
@@ -123,6 +127,7 @@ export default function StorefrontList() {
                 <tbody>
                   {storefronts.map((store) => (
                     <tr key={store.id} className="border-b hover:bg-gray-50">
+                      {/* Name Column */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           {store.name}
@@ -131,7 +136,11 @@ export default function StorefrontList() {
                           )}
                         </div>
                       </td>
+
+                      {/* Slug Column */}
                       <td className="py-3 px-4 text-gray-600">/{store.slug}</td>
+
+                      {/* Domain Column */}
                       <td className="py-3 px-4 text-gray-600">
                         {store.domain ? (
                           <a
@@ -147,6 +156,8 @@ export default function StorefrontList() {
                           "—"
                         )}
                       </td>
+
+                      {/* Status Column */}
                       <td className="py-3 px-4">
                         <span
                           className={`px-2 py-1 rounded text-sm font-medium ${
@@ -162,9 +173,24 @@ export default function StorefrontList() {
                         </span>
                       </td>
 
+                      {/* Actions Column */}
                       {(canUpdate || canDelete) && (
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-2">
+                            {/* Products Management Button */}
+                            <PermissionGuard permission="storefronts:read">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleProductsClick(store)}
+                                title="Manage products"
+                                className="hover:cursor-pointer"
+                              >
+                                <Package className="h-4 w-4" />
+                              </Button>
+                            </PermissionGuard>
+
+                            {/* Edit Button */}
                             <PermissionGuard permission="storefronts:update">
                               <Button
                                 variant="ghost"
@@ -177,8 +203,9 @@ export default function StorefrontList() {
                               </Button>
                             </PermissionGuard>
 
+                            {/* Delete Button */}
                             <PermissionGuard permission="storefronts:delete">
-                              {store.status !== "active" && ( // optional: prevent deleting active ones
+                              {store.status !== "active" && (
                                 <Button
                                   variant="ghost"
                                   size="sm"

@@ -1,10 +1,10 @@
 import { AxiosError } from "axios";
-import api from "../client";
+import apiClient from "../client";
 import type { DashboardData } from "@/types/analytics";
 
 export const getDashboardData = async (): Promise<DashboardData | null> => {
   try {
-    const { data } = await api.get<DashboardData>("/analytics/dashboard");
+    const { data } = await apiClient.get<DashboardData>("/analytics/dashboard");
     return data;
   } catch (err: unknown) {
     if (err instanceof AxiosError && err.response?.status === 401) {

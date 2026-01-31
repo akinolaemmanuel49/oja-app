@@ -1,4 +1,4 @@
-import api from "../client";
+import apiClient from "../client";
 
 export type LoginCredentials = {
   email: string;
@@ -6,6 +6,6 @@ export type LoginCredentials = {
 };
 
 export const login = async (credentials: LoginCredentials) => {
-  const { data } = await api.post("/auth/login", credentials);
+  const { data } = await apiClient.post("/auth/login", credentials);
   return data;
 };

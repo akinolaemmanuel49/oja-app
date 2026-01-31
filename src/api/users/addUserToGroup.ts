@@ -1,7 +1,7 @@
-import api from "../client";
+import apiClient from "../client";
 
 export const addUserToGroup = async (userId: string, groupId: string) => {
-  const { data } = await api.post(`/users/${userId}/groups/add`, {
+  const { data } = await apiClient.post(`/users/${userId}/groups/add`, {
     group_id: groupId,
   });
 

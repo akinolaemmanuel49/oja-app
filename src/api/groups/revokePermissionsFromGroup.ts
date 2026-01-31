@@ -1,11 +1,11 @@
 import type { RevokePermissionsFromGroupResponse } from "@/responses/group";
-import api from "../client";
+import apiClient from "../client";
 
 export async function revokePermissionsFromGroup(
   groupId: string,
   permissionCodes: string[],
 ): Promise<RevokePermissionsFromGroupResponse> {
-  const { data } = await api.post(`/groups/${groupId}/permissions/revoke`, {
+  const { data } = await apiClient.post(`/groups/${groupId}/permissions/revoke`, {
     permission_codes: permissionCodes,
   });
   return data;

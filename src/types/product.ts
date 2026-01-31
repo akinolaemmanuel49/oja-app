@@ -20,6 +20,7 @@ export type Product = {
   stock_quantity?: number | null;
   re_order_level?: number | null;
   // Common fields
+  main_image_url?: string | null;
   image_urls: string[];
   created_at: string;
   updated_at: string;

@@ -1,12 +1,12 @@
 import type { Group } from "@/types/group";
-import api from "../client";
+import apiClient from "../client";
 import type { UpdateGroupRequest } from "@/requests/group";
 
 export async function updateGroup(
   groupId: string,
   groupUpdate: UpdateGroupRequest,
 ): Promise<Group> {
-  const { data } = await api.patch(`/groups/${groupId}`, groupUpdate);
+  const { data } = await apiClient.patch(`/groups/${groupId}`, groupUpdate);
   return data;
 }
 

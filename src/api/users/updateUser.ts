@@ -1,12 +1,12 @@
 import type { UpdateUserRequest } from "@/requests/user";
-import api from "../client";
+import apiClient from "../client";
 import type { User } from "@/types/user";
 
 export const updateUser = async (
   userId: string,
   userUpdate: UpdateUserRequest,
 ): Promise<User> => {
-  const { data } = await api.patch(`/users/${userId}`, userUpdate);
+  const { data } = await apiClient.patch(`/users/${userId}`, userUpdate);
   return data;
 };
 

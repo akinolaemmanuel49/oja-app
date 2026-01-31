@@ -1,12 +1,12 @@
 import type { UpdateStorefrontRequest } from "@/requests/storefront";
 import type { Storefront } from "@/types/storefront";
-import api from "../client";
+import apiClient from "../client";
 
 export const updateStorefront = async (
   storefrontId: string,
   storefrontData: UpdateStorefrontRequest,
 ): Promise<Storefront> => {
-  const { data } = await api.patch(
+  const { data } = await apiClient.patch(
     `/storefronts/${storefrontId}`,
     storefrontData,
   );

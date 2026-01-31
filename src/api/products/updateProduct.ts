@@ -1,11 +1,11 @@
 import type { Product, ProductUpdate } from "@/types/product";
-import api from "../client";
+import apiClient from "../client";
 
 export async function updateProduct(
   productId: string,
   productData: ProductUpdate,
 ): Promise<Product> {
-  const { data } = await api.patch<Product>(
+  const { data } = await apiClient.patch<Product>(
     `/products/${productId}`,
     productData,
   );

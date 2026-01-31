@@ -2,48 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Package, View } from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchProducts } from "@/api/products/fetchProducts";
 import type { Product } from "@/types/product";
 import { useMemo } from "react";
-
-/**
- * Helper function to calculate the price range for variable products
- * Returns a formatted string like "₦1,000 - ₦5,000" or just "₦1,000" if all variants have the same price
- */
-function getVariantPriceRange(product: Product): string {
-  // For simple products, return the base price
-  if (product.type === "simple") {
-    return product.base_price ? `₦${product.base_price.toLocaleString()}` : "—";
-  }
-
-  // For variable products, calculate range from variants
-  if (!product.variants || product.variants.length === 0) {
-    return "—";
-  }
-
-  // Extract all non-null prices from variants
-  const prices = product.variants
-    .map((v) => v.price)
-    .filter((p): p is number => p !== null && p !== undefined);
-
-  if (prices.length === 0) {
-    return "—";
-  }
-
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-
-  // If all variants have the same price, just show one value
-  if (minPrice === maxPrice) {
-    return `₦${minPrice.toLocaleString()}`;
-  }
-
-  // Otherwise show the range
-  return `₦${minPrice.toLocaleString()} - ₦${maxPrice.toLocaleString()}`;
-}
+import { getVariantPriceRange } from "@/helpers/getVariantPriceRange";
 
 /**
  * Helper function to format the SKU column for variable products
@@ -97,8 +62,13 @@ export default function ProductList() {
   );
 
   const canCreate = can("products:create");
+  const canRead = can("products:read");
   const canUpdate = can("products:update");
   const canDelete = can("products:delete");
+
+  const handleViewClick = (product: Product) => {
+    navigate(`/products/${product.id}`);
+  };
 
   const handleEditClick = (product: Product) => {
     navigate(`/products/${product.id}/edit`);
@@ -215,9 +185,21 @@ export default function ProductList() {
                       </td>
 
                       {/* Actions Column */}
-                      {(canUpdate || canDelete) && (
+                      {(canRead || canUpdate || canDelete) && (
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-2">
+                            <PermissionGuard permission="products:read">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewClick(product)}
+                                title="View product"
+                                className="hover:cursor-pointer"
+                              >
+                                <View className="h-4 w-4" />
+                              </Button>
+                            </PermissionGuard>
+
                             <PermissionGuard permission="products:update">
                               <Button
                                 variant="ghost"
