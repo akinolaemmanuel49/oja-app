@@ -9,6 +9,7 @@ import { fetchUsers } from "@/api/users/fetchUsers";
 import type { User } from "@/types/user";
 import { AppHref } from "@/routes/constants";
 import { useMemo } from "react";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function UserList() {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ export default function UserList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading users...</p>
+        <AppLoader text={"Loading users"} />
       </div>
     );
   }

@@ -20,6 +20,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchUser } from "@/api/users/fetchUser";
 import { listUserPermissions } from "@/api/users/listUserPermissions";
 import { grantPermissionsToUserMutationFn } from "@/api/users/grantPermissionsToUser";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function ManageUserPermissions() {
   const { userId } = useParams<{ userId: string }>();
@@ -144,7 +145,7 @@ export default function ManageUserPermissions() {
   if (isLoadingUser || isLoadingPermissions) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={`Loading ${isLoadingUser ? "user" : "permissions"}`} />
       </div>
     );
   }

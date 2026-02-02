@@ -121,6 +121,7 @@ export default function CreateProduct() {
     name: "variants",
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const productType = watch("type");
 
   // When switching product type, clear the opposite type's data
@@ -403,8 +404,11 @@ export default function CreateProduct() {
  */
 type VariantCardProps = {
   variantIndex: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   errors: any;
   onRemove: () => void;
   isPending: boolean;

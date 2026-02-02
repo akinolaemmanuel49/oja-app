@@ -1,15 +1,15 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
 import { AppHref } from "@/routes/constants";
+import { AppLoader } from "../loaders/AppLoader";
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center h-64">
+        <AppLoader text={"Authenticating..."} />
       </div>
     );
   }

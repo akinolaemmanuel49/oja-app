@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function GroupList() {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ export default function GroupList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading groups...</p>
+        <AppLoader text={"Loading groups"} />
       </div>
     );
   }

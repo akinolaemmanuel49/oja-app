@@ -42,6 +42,7 @@ import { updateStorefrontProduct } from "@/api/storefronts/updateStorefrontProdu
 import { getVariantPriceRange } from "@/helpers/getVariantPriceRange";
 import { getVariantSkuDisplay } from "@/helpers/getVariantSkuDisplay";
 import type { Product } from "@/types/product";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 /**
  * Main component for managing products within a storefront
@@ -183,7 +184,7 @@ export default function StorefrontProducts() {
   if (isLoadingStorefrontProducts) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"Loading storefront products"} />
       </div>
     );
   }

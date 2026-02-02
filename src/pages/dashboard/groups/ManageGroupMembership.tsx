@@ -18,6 +18,7 @@ import { fetchUsers } from "@/api/users/fetchUsers";
 import { listGroupMembers } from "@/api/groups/listGroupMembers";
 import { addUsersToGroupMutationFn } from "@/api/groups/addUsersToGroup";
 import { AppHref } from "@/routes/constants";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function ManageGroupMembership() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -129,7 +130,7 @@ export default function ManageGroupMembership() {
   if (isLoadingGroup || isLoadingUsers) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={`Loading ${isLoadingGroup ? "group" : "users"}`} />
       </div>
     );
   }

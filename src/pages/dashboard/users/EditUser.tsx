@@ -17,6 +17,7 @@ import { updateUserMutationFn } from "@/api/users/updateUser";
 import { fetchUser } from "@/api/users/fetchUser";
 import type { UpdateUserRequest } from "@/requests/user";
 import { AppHref } from "@/routes/constants";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function EditUser() {
   const { userId } = useParams<{ userId: string }>();
@@ -102,7 +103,7 @@ export default function EditUser() {
   if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"Loading user"} />
       </div>
     );
   }

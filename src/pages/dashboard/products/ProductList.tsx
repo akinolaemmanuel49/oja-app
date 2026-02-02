@@ -9,6 +9,7 @@ import { fetchProducts } from "@/api/products/fetchProducts";
 import type { Product } from "@/types/product";
 import { useMemo } from "react";
 import { getVariantPriceRange } from "@/helpers/getVariantPriceRange";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 /**
  * Helper function to format the SKU column for variable products
@@ -86,7 +87,7 @@ export default function ProductList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading products...</p>
+        <AppLoader text={"Loading products"} />
       </div>
     );
   }

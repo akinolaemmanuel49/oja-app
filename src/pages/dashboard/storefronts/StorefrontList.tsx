@@ -8,6 +8,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { fetchStorefronts } from "@/api/storefronts/fetchStorefronts";
 import type { Storefront } from "@/types/storefront";
 import { useMemo } from "react";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function StorefrontList() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export default function StorefrontList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading storefronts...</p>
+        <AppLoader text={"Loading storefronts"} />
       </div>
     );
   }

@@ -7,8 +7,8 @@ type SidebarToggleProps = {
 
 export const SidebarIcon = ({ isOpen, className }: SidebarToggleProps) => {
   return isOpen ? (
-    <SidebarCloseIcon className={className} />
+    <SidebarCloseIcon className={className} aria-label="Toggle Sidebar Close" />
   ) : (
-    <SidebarOpenIcon className={className} />
+    <SidebarOpenIcon className={className} aria-label="Toggle Sidebar Open" />
   );
 };

@@ -20,6 +20,7 @@ import { listGroupPermissions } from "@/api/groups/listGroupPermissions";
 import { grantPermissionsToGroupMutationFn } from "@/api/groups/grantPermissionsToGroup";
 import { AppHref } from "@/routes/constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function ManageGroupPermissions() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -144,7 +145,9 @@ export default function ManageGroupPermissions() {
   if (isLoadingGroup || isLoadingPermissions) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader
+          text={`Loading ${isLoadingGroup ? "group" : "permissions"}`}
+        />
       </div>
     );
   }

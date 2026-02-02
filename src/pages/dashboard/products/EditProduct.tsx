@@ -35,6 +35,7 @@ import { Loader2, ArrowLeft, Plus, Trash2, X } from "lucide-react";
 import { updateProduct } from "@/api/products/updateProduct";
 import { fetchProduct } from "@/api/products/fetchProduct";
 import type { Product, ProductUpdate } from "@/types/product";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 /**
  * Form data structure for editing - similar to create but with update/add/remove arrays
@@ -187,7 +188,7 @@ export default function EditProduct() {
   if (isLoadingProduct) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"Loading product"} />
       </div>
     );
   }
@@ -288,6 +289,7 @@ function EditProductForm({ product }: { product: Product }) {
 
   // Mark an existing variant for removal
   const markVariantForRemoval = (id: string) => {
+    // eslint-disable-next-line react-hooks/incompatible-library
     const removeList = watch("variants_to_remove") ?? [];
     setValue("variants_to_remove", [...removeList, id]);
 
@@ -511,7 +513,9 @@ function EditProductForm({ product }: { product: Product }) {
  */
 type ExistingVariantCardProps = {
   variantIndex: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: any;
   onRemove: () => void;
   isPending: boolean;
@@ -677,8 +681,11 @@ function ExistingVariantCard({
  */
 type NewVariantCardProps = {
   variantIndex: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   errors: any;
   onRemove: () => void;
   isPending: boolean;

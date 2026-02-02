@@ -6,6 +6,7 @@ import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardData } from "@/api/analytics/getDashboardData";
 import { useMemo } from "react";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function DashboardHome() {
   const { userWithPermissions, isLoading: isLoadingAuth } = useAuth();
@@ -24,7 +25,7 @@ export default function DashboardHome() {
   if (isLoadingAuth || isLoadingDashboard) {
     return (
       <div className="flex h-screen items-center justify-center">
-        Loading...
+        <AppLoader />
       </div>
     );
   }
@@ -141,7 +142,13 @@ export default function DashboardHome() {
 
           <PermissionGuard permission="users:create">
             <p className="text-sm text-gray-600">
-              • Invite team members to collaborate
+              • Add team members to collaborate
+            </p>
+          </PermissionGuard>
+
+          <PermissionGuard permission="groups:create">
+            <p className="text-sm text-gray-600">
+              • Add groups to organize your team
             </p>
           </PermissionGuard>
         </div>

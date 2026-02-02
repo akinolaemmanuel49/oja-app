@@ -17,7 +17,6 @@ import {
   Shield,
   UserPlus,
   ShieldPlus,
-  Loader2,
   Trash2,
   Edit,
   UserMinus,
@@ -43,6 +42,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function UserDetail() {
   const { userId } = useParams<{ userId: string }>();
@@ -198,7 +198,7 @@ export default function UserDetail() {
   if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"Loading user"} />
       </div>
     );
   }
@@ -370,7 +370,7 @@ export default function UserDetail() {
             <CardContent>
               {isLoadingGroups || !allGroupsData ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  <AppLoader text={"Loading user groups"} />
                 </div>
               ) : isRootUser ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -490,7 +490,7 @@ export default function UserDetail() {
             <CardContent>
               {isLoadingPermissions ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  <AppLoader text={"Loading permissions"} />
                 </div>
               ) : isRootUser ? (
                 <div className="text-center py-12 bg-yellow-50 rounded-lg">

@@ -25,6 +25,7 @@ import { fetchStorefront } from "@/api/storefronts/fetchStorefront";
 import type { UpdateStorefrontRequest } from "@/requests/storefront";
 import type { Storefront, StorefrontStatus } from "@/types/storefront";
 import { AppHref } from "@/routes/constants";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function EditStorefront() {
   const { storeId } = useParams<{ storeId: string }>();
@@ -39,7 +40,7 @@ export default function EditStorefront() {
   if (isLoadingStorefront) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"Loading storefronts"} />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import type { PermissionCode } from "@/types/permission";
 import { AppHref } from "@/routes/constants";
 import type { ReactNode } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { AppLoader } from "../loaders/AppLoader";
 
 type PermissionRouteProps = {
   /** Single permission required to access route */
@@ -41,7 +42,7 @@ export function PermissionRoute({
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        Loading...
+        <AppLoader text={"Checking permissions"} />
       </div>
     );
   }

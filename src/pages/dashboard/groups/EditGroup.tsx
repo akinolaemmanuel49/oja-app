@@ -18,6 +18,7 @@ import { updateGroup } from "@/api/groups/updateGroup";
 import { fetchGroup } from "@/api/groups/fetchGroup";
 import { AppHref } from "@/routes/constants";
 import type { UpdateGroupRequest } from "@/requests/group";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function EditGroup() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -121,7 +122,7 @@ export default function EditGroup() {
   if (isLoadingGroup) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"LoadingFetching group data"} />
       </div>
     );
   }

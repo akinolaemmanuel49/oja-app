@@ -1,4 +1,4 @@
-import { LogOut, User, UserIcon } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarIcon } from "./SidebarIcon";
 import {
@@ -29,7 +29,11 @@ export const Navbar = ({ onToggleSidebar, isOpen }: NavbarProps) => {
             onClick={onToggleSidebar}
             className="lg:hidden"
           >
-            <SidebarIcon isOpen={isOpen} className="w-6 h-6" />
+            <SidebarIcon
+              isOpen={isOpen}
+              className="w-6 h-6"
+              aria-label="Toggle Sidebar"
+            />
           </Button>
 
           {/* Desktop sidebar toggle */}
@@ -42,7 +46,7 @@ export const Navbar = ({ onToggleSidebar, isOpen }: NavbarProps) => {
             <SidebarIcon isOpen={isOpen} />
           </Button>
 
-          <h1 className="text-xl font-semibold text-gray-800">Oja Dashboard</h1>
+          <h1 className="text-xl font-semibold text-gray-800">ọjà Dashboard</h1>
         </div>
 
         {/* Right side navbar */}
@@ -50,7 +54,10 @@ export const Navbar = ({ onToggleSidebar, isOpen }: NavbarProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
+                <User
+                  className="h-5 w-5"
+                  aria-label="Current User Management"
+                />
               </Button>
             </DropdownMenuTrigger>
 
@@ -59,7 +66,7 @@ export const Navbar = ({ onToggleSidebar, isOpen }: NavbarProps) => {
               className="w-44 bg-white border shadow-lg"
             >
               <DropdownMenuItem className="flex items-center gap-2">
-                <UserIcon className="h-4 w-4" />
+                <User className="h-4 w-4" aria-label="Profile" />
                 Profile
               </DropdownMenuItem>
 

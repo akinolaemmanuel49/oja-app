@@ -17,7 +17,6 @@ import {
   Shield,
   UserPlus,
   ShieldPlus,
-  Loader2,
   Trash2,
   Edit,
 } from "lucide-react";
@@ -39,6 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AppLoader } from "@/components/loaders/AppLoader";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -167,7 +167,7 @@ export default function GroupDetail() {
   if (isLoadingGroup) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <AppLoader text={"Loading group data"} />
       </div>
     );
   }
@@ -286,7 +286,7 @@ export default function GroupDetail() {
             <CardContent>
               {isLoadingMembers ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  <AppLoader text={"Loading group members"} />
                 </div>
               ) : members.length > 0 ? (
                 <div className="space-y-3">
@@ -359,7 +359,7 @@ export default function GroupDetail() {
             <CardContent>
               {isLoadingPermissions ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  <AppLoader text={"Loading group permissions"} />
                 </div>
               ) : permissions.length > 0 ? (
                 <div className="space-y-3">

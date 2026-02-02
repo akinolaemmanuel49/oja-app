@@ -12,6 +12,7 @@ type NavItem = {
   icon: typeof Home;
   label: string;
   href: string;
+  ariaLabel: string;
   /** Permission required to see this nav item (optional) */
   permission?: string;
 };
@@ -26,35 +27,41 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Home,
       label: "Dashboard",
       href: AppHref.dashboardHomeRoute,
+      ariaLabel: "Dashboard",
     },
     {
       icon: Store,
       label: "Storefronts",
       href: AppHref.storefrontsRoute,
       permission: "storefronts:read", // Only show if user can read storefronts
+      ariaLabel: "Storefronts",
     },
     {
       icon: Package,
       label: "Products",
       href: AppHref.productsRoute,
       permission: "products:read", // Only show if user can read products
+      ariaLabel: "Products",
     },
     {
       icon: Users,
       label: "Users",
       href: AppHref.usersRoute,
       permission: "users:read", // Only show if user can read users
+      ariaLabel: "Users",
     },
     {
       icon: Group,
       label: "Groups",
       href: AppHref.groupsRoute,
       permission: "groups:read", // Only show if user can read groups
+      ariaLabel: "Groups",
     },
     {
       icon: Settings,
       label: "Settings",
       href: AppHref.settingsRoute,
+      ariaLabel: "Settings",
     },
   ];
 
@@ -75,9 +82,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const renderNavItem = (item: NavItem) => {
     const Icon = item.icon;
     const active = isActive(item.href);
+    const ariaLabel = item.ariaLabel;
 
     const navLink = (
       <Link
+        aria-label={ariaLabel}
         to={item.href}
         className={`
           flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
