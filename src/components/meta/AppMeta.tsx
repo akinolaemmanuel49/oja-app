@@ -1,3 +1,5 @@
+import { META_BANNER, META_LOGO } from "@/config";
+
 type AppMetaProps = {
   title: string;
   description?: string;
@@ -10,7 +12,7 @@ export function AppMeta({
   title,
   description,
   noIndex,
-  image = import.meta.env.VITE_META_LOGO,
+  image = META_LOGO,
   canonical,
 }: AppMetaProps) {
   return (
@@ -37,7 +39,7 @@ export function AppMeta({
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       {description && <meta name="twitter:description" content={description} />}
-      <meta name="twitter:image" content={import.meta.env.VITE_META_BANNER} />
+      <meta name="twitter:image" content={META_BANNER} />
       {/* Optional but helpful */}
       <meta name="theme-color" content="#000000" /> {/* or your brand color */}
     </>

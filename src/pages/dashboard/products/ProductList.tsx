@@ -10,30 +10,8 @@ import type { Product } from "@/types/product";
 import { useMemo } from "react";
 import { getVariantPriceRange } from "@/helpers/getVariantPriceRange";
 import { AppLoader } from "@/components/loaders/AppLoader";
-
-/**
- * Helper function to format the SKU column for variable products
- * Shows the variant count and indicates it's a variable product
- */
-function getVariantSkuDisplay(product: Product): React.ReactNode {
-  if (product.type === "simple") {
-    return <span className="text-gray-600">{product.sku || "—"}</span>;
-  }
-
-  // For variable products, show variant count
-  const variantCount = product.variants?.length || 0;
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-gray-600 text-sm">
-        {variantCount} {variantCount === 1 ? "variant" : "variants"}
-      </span>
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-        Variable
-      </span>
-    </div>
-  );
-}
+import { ProductImageDisplay } from "./components/ProductImageDisplay";
+import { getVariantSkuDisplay } from "./helpers/getVariantSkuDisplay";
 
 export default function ProductList() {
   const navigate = useNavigate();
@@ -41,7 +19,7 @@ export default function ProductList() {
   const pageSize = 20;
   const { can } = usePermissions();
 
-  // Fetch products list with variants included so we can calculate price ranges
+  // Fetch products list with variants included so we can display images and calculate price ranges
   const {
     data: paginatedResponse,
     isLoading,
@@ -132,6 +110,9 @@ export default function ProductList() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
+                      Image
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">
                       Name
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
@@ -154,6 +135,11 @@ export default function ProductList() {
                 <tbody>
                   {products.map((product) => (
                     <tr key={product.id} className="border-b hover:bg-gray-50">
+                      {/* Product Image(s) */}
+                      <td className="py-3 px-4">
+                        <ProductImageDisplay product={product} />
+                      </td>
+
                       {/* Product Name */}
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
