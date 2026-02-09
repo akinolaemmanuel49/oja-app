@@ -38,6 +38,9 @@ const EditStorefront = lazy(
 const StorefrontProducts = lazy(
   () => import("@/pages/dashboard/storefronts/StorefrontProducts"),
 );
+const StorefrontDesigner = lazy(
+  () => import("@/pages/dashboard/storefronts/StorefrontDesigner"),
+);
 
 const ProductList = lazy(
   () => import("@/pages/dashboard/products/ProductList"),
@@ -224,6 +227,15 @@ export const protectedRoutes: RouteConfig[] = [
     permissions: ["storefronts:update"],
     meta: {
       title: "ọjà - Storefront Products",
+      noIndex: true,
+    },
+  },
+  {
+    path: "/storefronts/:storeId/designer",
+    element: <StorefrontDesigner />,
+    permissions: ["storefronts:update"],
+    meta: {
+      title: "ọjà - Storefront Designer",
       noIndex: true,
     },
   },

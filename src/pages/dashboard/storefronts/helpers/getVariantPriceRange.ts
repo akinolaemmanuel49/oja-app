@@ -5,7 +5,6 @@ import type { StorefrontProduct } from "@/types/storefront.product";
  * Returns a formatted string like "₦1,000 - ₦5,000" or just "₦1,000" if all variants have the same price
  */
 export function getVariantPriceRange(product: StorefrontProduct): string {
-  console.log("getVariantPriceRange", product);
   // For simple products, return the base price
   if (product.product_type === "simple") {
     return product.base_price ? `₦${product.base_price.toLocaleString()}` : "—";

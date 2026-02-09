@@ -2,7 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit, Trash2, Globe, Store, Lock, Package } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Globe,
+  Store,
+  Lock,
+  Package,
+  Paintbrush,
+} from "lucide-react";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchStorefronts } from "@/api/storefronts/fetchStorefronts";
@@ -42,6 +51,10 @@ export default function StorefrontList() {
 
   const handleEditClick = (storefront: Storefront) => {
     navigate(`/storefronts/${storefront.id}/edit`);
+  };
+
+  const handleDesignerClick = (storefront: Storefront) => {
+    navigate(`/storefronts/${storefront.id}/designer`);
   };
 
   const handleProductsClick = (storefront: Storefront) => {
@@ -188,6 +201,18 @@ export default function StorefrontList() {
                                 className="hover:cursor-pointer"
                               >
                                 <Package className="h-4 w-4" />
+                              </Button>
+                            </PermissionGuard>
+
+                            <PermissionGuard permission="storefronts:update">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDesignerClick(store)}
+                                title="Design storefront"
+                                className="hover:cursor-pointer"
+                              >
+                                <Paintbrush className="h-4 w-4" />
                               </Button>
                             </PermissionGuard>
 

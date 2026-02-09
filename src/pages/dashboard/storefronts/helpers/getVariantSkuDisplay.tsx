@@ -7,7 +7,6 @@ import type { StorefrontProduct } from "@/types/storefront.product";
 export function getVariantSkuDisplay(
   product: StorefrontProduct,
 ): React.ReactNode {
-  console.log("getVariantSkuDisplay", product);
   if (product.product_type === "simple") {
     return <span className="text-gray-600">{product.sku || "—"}</span>;
   }
