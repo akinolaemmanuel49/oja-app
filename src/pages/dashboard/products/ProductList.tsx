@@ -8,10 +8,11 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { fetchProducts } from "@/api/products/fetchProducts";
 import type { Product } from "@/types/product";
 import { useMemo } from "react";
-import { getVariantPriceRange } from "@/helpers/getVariantPriceRange";
+
 import { AppLoader } from "@/components/loaders/AppLoader";
 import { ProductImageDisplay } from "./components/ProductImageDisplay";
 import { getVariantSkuDisplay } from "./helpers/getVariantSkuDisplay";
+import { getVariantPriceRange } from "./helpers/getVariantPriceRange";
 
 export default function ProductList() {
   const navigate = useNavigate();

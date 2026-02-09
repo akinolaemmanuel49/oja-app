@@ -1,11 +1,14 @@
-import type { Product } from "@/types/product";
+import type { StorefrontProduct } from "@/types/storefront.product";
 
 /**
  * Helper function to format the SKU column for variable products
  * Shows the variant count and indicates it's a variable product
  */
-export function getVariantSkuDisplay(product: Product): React.ReactNode {
-  if (product.type === "simple") {
+export function getVariantSkuDisplay(
+  product: StorefrontProduct,
+): React.ReactNode {
+  console.log("getVariantSkuDisplay", product);
+  if (product.product_type === "simple") {
     return <span className="text-gray-600">{product.sku || "—"}</span>;
   }
 

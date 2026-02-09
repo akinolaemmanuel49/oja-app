@@ -39,10 +39,10 @@ import { addProductToStorefront } from "@/api/storefronts/addProductToStorefront
 import { fetchStorefrontProducts } from "@/api/storefronts/fetchStorefrontProducts";
 import { removeProductFromStorefront } from "@/api/storefronts/removeProductFromStorefront";
 import { updateStorefrontProduct } from "@/api/storefronts/updateStorefrontProduct";
-import { getVariantPriceRange } from "@/helpers/getVariantPriceRange";
-import { getVariantSkuDisplay } from "@/helpers/getVariantSkuDisplay";
-import type { Product } from "@/types/product";
+import { getVariantPriceRange } from "@/pages/dashboard/storefronts/helpers/getVariantPriceRange";
 import { AppLoader } from "@/components/loaders/AppLoader";
+import { getVariantSkuDisplay } from "./helpers/getVariantSkuDisplay";
+import { StorefrontProductImageDisplay } from "./components/StorefrontProductImageDisplay";
 
 /**
  * Main component for managing products within a storefront
@@ -119,9 +119,6 @@ export default function StorefrontProducts() {
         product_id: productId,
         is_visible: true,
       }),
-    onMutate: () => {
-      console.log("STOREFRONT ID:", storeId);
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["storefront-products", storeId!],
@@ -265,28 +262,9 @@ export default function StorefrontProducts() {
                       key={sp.product_id}
                       className="border-b hover:bg-gray-50"
                     >
+                      {/* Product Image(s) */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          {sp.main_image_url ? (
-                            <img
-                              src={sp.main_image_url}
-                              alt={sp.product_name}
-                              className="w-10 h-10 object-cover rounded"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
-                              <Package className="h-5 w-5 text-gray-400" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium">{sp.product_name}</div>
-                            {sp.product_description && (
-                              <div className="text-sm text-gray-500 line-clamp-1">
-                                {sp.product_description}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <StorefrontProductImageDisplay product={sp} />
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 capitalize">
@@ -294,13 +272,11 @@ export default function StorefrontProducts() {
                         </span>
                       </td>
                       {/* SKU / Variants Column - Different display for simple vs variable */}
-                      <td className="py-3 px-4">
-                        {getVariantSkuDisplay(sp as unknown as Product)}
-                      </td>
+                      <td className="py-3 px-4">{getVariantSkuDisplay(sp)}</td>
                       {/* Price Column - Shows range for variable products */}
                       <td className="py-3 px-4">
                         <span className="font-medium">
-                          {getVariantPriceRange(sp as unknown as Product)}
+                          {getVariantPriceRange(sp)}
                         </span>
                       </td>
                       <td className="py-3 px-4">
