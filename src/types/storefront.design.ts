@@ -6,17 +6,81 @@
  */
 
 // ============================================================================
-// COMPONENT TYPES
+// PAGE TYPES
 // ============================================================================
 
-export type ComponentType =
+/**
+ * The three pages a storefront can have.
+ * Each page has its own allowed component set.
+ */
+export type PageType = "home" | "products" | "product_detail";
+
+export const PAGE_TYPE_LABELS: Record<PageType, string> = {
+  home: "Home",
+  products: "Products",
+  product_detail: "Product Detail",
+};
+
+// ============================================================================
+// COMPONENT TYPES — grouped by which pages allow them
+// ============================================================================
+
+/** Components available on ALL pages */
+export type SharedComponentType =
   | "hero"
   | "banner"
   | "text"
-  | "product_grid"
-  | "product_carousel"
   | "image_gallery"
   | "spacer";
+
+/** Components only available on the Home page */
+export type HomeOnlyComponentType = "product_grid" | "product_carousel";
+
+/** Components only available on the Products listing page */
+export type ProductsOnlyComponentType =
+  | "products_header" // Title/subtitle/sort bar at top of listing
+  | "products_filter_bar"; // Category/price filter row
+
+/** Components only available on the Product Detail page */
+export type ProductDetailOnlyComponentType =
+  | "product_images" // Main image + thumbnail strip
+  | "product_info" // Name, price, variants, add-to-cart area
+  | "product_tabs" // Description / specs / reviews tabs
+  | "related_products"; // "You may also like" grid at bottom
+
+export type ComponentType =
+  | SharedComponentType
+  | HomeOnlyComponentType
+  | ProductsOnlyComponentType
+  | ProductDetailOnlyComponentType;
+
+/** Which component types are allowed per page */
+export const ALLOWED_COMPONENTS_BY_PAGE: Record<PageType, ComponentType[]> = {
+  home: [
+    "hero",
+    "banner",
+    "text",
+    "image_gallery",
+    "spacer",
+    "product_grid",
+    "product_carousel",
+  ],
+  products: [
+    "products_header",
+    "products_filter_bar",
+    "text",
+    "banner",
+    "spacer",
+  ],
+  product_detail: [
+    "product_images",
+    "product_info",
+    "product_tabs",
+    "related_products",
+    "text",
+    "spacer",
+  ],
+};
 
 // ============================================================================
 // SORT/FILTER OPTIONS
@@ -41,7 +105,7 @@ interface BaseComponent {
 }
 
 // ============================================================================
-// HERO COMPONENT
+// SHARED COMPONENTS (available on all pages)
 // ============================================================================
 
 export interface HeroComponent extends BaseComponent {
@@ -49,14 +113,14 @@ export interface HeroComponent extends BaseComponent {
   data: {
     title: string;
     subtitle?: string;
-    backgroundImage?: string; // Cloudinary URL
-    backgroundColor?: string; // Hex color
-    height: "small" | "medium" | "large" | "full"; // 300px, 500px, 700px, 100vh
+    backgroundImage?: string;
+    backgroundColor?: string;
+    height: "small" | "medium" | "large" | "full";
     textAlign: "left" | "center" | "right";
-    textColor: string; // Hex color
+    textColor: string;
     overlay?: {
       enabled: boolean;
-      color: string; // Hex color
+      color: string;
       opacity: number; // 0-100
     };
     cta?: {
@@ -68,119 +132,212 @@ export interface HeroComponent extends BaseComponent {
   };
 }
 
-// ============================================================================
-// BANNER COMPONENT (Image carousel/slideshow)
-// ============================================================================
-
 export interface BannerComponent extends BaseComponent {
   type: "banner";
   data: {
     images: Array<{
-      url: string; // Cloudinary URL
+      url: string;
       alt?: string;
-      link?: string; // Optional click-through URL
+      link?: string;
     }>;
     autoPlay: boolean;
-    interval: number; // Milliseconds (e.g., 5000 for 5 seconds)
-    height: "small" | "medium" | "large"; // 300px, 500px, 700px
+    interval: number;
+    height: "small" | "medium" | "large";
     showDots: boolean;
     showArrows: boolean;
   };
 }
 
-// ============================================================================
-// TEXT COMPONENT (Rich text block)
-// ============================================================================
-
 export interface TextComponent extends BaseComponent {
   type: "text";
   data: {
-    content: string; // HTML content (from rich text editor)
-    maxWidth: "full" | "narrow" | "medium" | "wide"; // 100%, 640px, 768px, 1024px
+    content: string; // HTML from rich text editor
+    maxWidth: "full" | "narrow" | "medium" | "wide";
     textAlign: "left" | "center" | "right";
-    backgroundColor?: string; // Hex color
-    padding: "none" | "small" | "medium" | "large"; // 0, 1rem, 2rem, 3rem
+    backgroundColor?: string;
+    padding: "none" | "small" | "medium" | "large";
+  };
+}
+
+export interface ImageGalleryComponent extends BaseComponent {
+  type: "image_gallery";
+  data: {
+    images: Array<{
+      url: string;
+      alt?: string;
+      caption?: string;
+    }>;
+    layout: "grid" | "masonry";
+    columns: 2 | 3 | 4;
+    gap: "small" | "medium" | "large";
+  };
+}
+
+export interface SpacerComponent extends BaseComponent {
+  type: "spacer";
+  data: {
+    height: "small" | "medium" | "large" | "xlarge";
   };
 }
 
 // ============================================================================
-// PRODUCT GRID COMPONENT
+// HOME-ONLY COMPONENTS
 // ============================================================================
 
 export interface ProductGridComponent extends BaseComponent {
   type: "product_grid";
   data: {
     title?: string;
-    columns: 2 | 3 | 4 | 5 | 6; // Grid columns
-    limit: number; // Max products to show
+    columns: 2 | 3 | 4 | 5 | 6;
+    limit: number;
     sortOrder: ProductSortOrder;
     showPrice: boolean;
     showSku: boolean;
-    showAddToCart: boolean; // Future: add to cart button
+    showAddToCart: boolean;
     cardStyle: "minimal" | "bordered" | "shadow";
-    spacing: "compact" | "normal" | "relaxed"; // Gap between cards
+    spacing: "compact" | "normal" | "relaxed";
   };
 }
-
-// ============================================================================
-// PRODUCT CAROUSEL COMPONENT
-// ============================================================================
 
 export interface ProductCarouselComponent extends BaseComponent {
   type: "product_carousel";
   data: {
     title?: string;
-    limit: number; // Max products to show
+    limit: number;
     sortOrder: ProductSortOrder;
-    itemsPerView: 2 | 3 | 4 | 5; // How many products visible at once
+    itemsPerView: 2 | 3 | 4 | 5;
     showPrice: boolean;
     showSku: boolean;
     autoPlay: boolean;
-    interval: number; // Milliseconds
+    interval: number;
   };
 }
 
 // ============================================================================
-// IMAGE GALLERY COMPONENT
+// PRODUCTS PAGE COMPONENTS
 // ============================================================================
 
-export interface ImageGalleryComponent extends BaseComponent {
-  type: "image_gallery";
+/**
+ * Top header bar of the products listing page.
+ * Controls the page title, subtitle, and default sort order.
+ */
+export interface ProductsHeaderComponent extends BaseComponent {
+  type: "products_header";
   data: {
-    images: Array<{
-      url: string; // Cloudinary URL
-      alt?: string;
-      caption?: string;
+    title: string; // e.g. "All Products"
+    subtitle?: string;
+    defaultSortOrder: ProductSortOrder;
+    showResultCount: boolean; // "Showing 24 products"
+    showSortDropdown: boolean; // Let the user re-sort on the storefront
+  };
+}
+
+/**
+ * Filter bar shown above the product grid on the listing page.
+ * No dynamic categories from the backend — just visual config.
+ */
+export interface ProductsFilterBarComponent extends BaseComponent {
+  type: "products_filter_bar";
+  data: {
+    showPriceFilter: boolean;
+    showTypeFilter: boolean; // simple / variable
+    filterPosition: "top" | "side"; // layout preference
+    sticky: boolean; // stick to top while scrolling
+  };
+}
+
+// ============================================================================
+// PRODUCT DETAIL COMPONENTS
+// ============================================================================
+
+/**
+ * Image section of the product detail page.
+ * Controls layout of the main image and thumbnails.
+ */
+export interface ProductImagesComponent extends BaseComponent {
+  type: "product_images";
+  data: {
+    layout: "stack" | "grid" | "carousel"; // how thumbnails are shown
+    mainImageAspect: "square" | "portrait" | "landscape";
+    showThumbnails: boolean;
+    thumbnailPosition: "bottom" | "left";
+    zoomOnHover: boolean;
+  };
+}
+
+/**
+ * Core product info block: name, price, variant selector, quantity, add-to-cart.
+ * This is always rendered from live product data on the storefront side —
+ * here we only control layout/visibility of each sub-section.
+ */
+export interface ProductInfoComponent extends BaseComponent {
+  type: "product_info";
+  data: {
+    showSku: boolean;
+    showStockStatus: boolean;
+    showVariantSelector: boolean; // color/size swatches
+    variantSelectorStyle: "dropdown" | "buttons"; // how variant options render
+    showQuantitySelector: boolean;
+    addToCartButtonText: string; // e.g. "Add to Cart", "Buy Now"
+    showShareButtons: boolean;
+    pricePosition: "below_name" | "above_cart"; // layout
+  };
+}
+
+/**
+ * Tabbed content section below the main product block.
+ * Each tab is a rich-text area.
+ */
+export interface ProductTabsComponent extends BaseComponent {
+  type: "product_tabs";
+  data: {
+    tabs: Array<{
+      id: string;
+      label: string; // "Description", "Specifications", etc.
+      content: string; // HTML from rich text editor
+      enabled: boolean;
     }>;
-    layout: "grid" | "masonry";
-    columns: 2 | 3 | 4;
-    gap: "small" | "medium" | "large"; // 0.5rem, 1rem, 2rem
+    defaultTab: string; // id of the tab open by default
+    tabStyle: "underline" | "pills" | "boxed";
   };
 }
 
-// ============================================================================
-// SPACER COMPONENT
-// ============================================================================
-
-export interface SpacerComponent extends BaseComponent {
-  type: "spacer";
+/**
+ * "Related / You May Also Like" product grid at the bottom of detail page.
+ */
+export interface RelatedProductsComponent extends BaseComponent {
+  type: "related_products";
   data: {
-    height: "small" | "medium" | "large" | "xlarge"; // 1rem, 2rem, 4rem, 6rem
+    title: string;
+    limit: number;
+    sortOrder: ProductSortOrder;
+    columns: 2 | 3 | 4;
+    cardStyle: "minimal" | "bordered" | "shadow";
   };
 }
 
 // ============================================================================
-// UNION TYPE FOR ALL COMPONENTS
+// UNION TYPE — ALL COMPONENTS
 // ============================================================================
 
 export type PageComponent =
+  // Shared
   | HeroComponent
   | BannerComponent
   | TextComponent
+  | ImageGalleryComponent
+  | SpacerComponent
+  // Home
   | ProductGridComponent
   | ProductCarouselComponent
-  | ImageGalleryComponent
-  | SpacerComponent;
+  // Products page
+  | ProductsHeaderComponent
+  | ProductsFilterBarComponent
+  // Product detail page
+  | ProductImagesComponent
+  | ProductInfoComponent
+  | ProductTabsComponent
+  | RelatedProductsComponent;
 
 // ============================================================================
 // THEME CONFIGURATION
@@ -196,44 +353,49 @@ export interface ThemeConfig {
     textSecondary: string;
   };
   fonts: {
-    heading: string; // Font family for headings
-    body: string; // Font family for body text
+    heading: string;
+    body: string;
   };
-  borderRadius: "none" | "small" | "medium" | "large"; // 0, 0.25rem, 0.5rem, 1rem
+  borderRadius: "none" | "small" | "medium" | "large";
 }
 
 // ============================================================================
-// PAGE SPEC (Complete page definition)
+// PAGE SPEC
 // ============================================================================
 
 export interface PageSpec {
-  version: string; // Spec version (e.g., "1.0.0")
-  createdAt: string; // ISO timestamp
-  updatedAt: string; // ISO timestamp
+  version: string;
+  createdAt: string;
+  updatedAt: string;
   meta: {
-    title: string; // Page title
-    description?: string; // Page description
+    title: string;
+    description?: string;
   };
   theme: ThemeConfig;
   components: PageComponent[];
 }
 
 // ============================================================================
-// STOREFRONT DESIGN (Complete storefront with multiple pages)
+// STOREFRONT DESIGN — multi-page
 // ============================================================================
 
 export interface StorefrontDesign {
-  version: string; // Design system version
-  storefrontId: string; // UUID of the storefront
+  version: string;
+  storefrontId: string;
   storefrontName: string;
+  /**
+   * Theme is shared across ALL pages — one source of truth.
+   */
+  theme: ThemeConfig;
   pages: {
-    home: PageSpec;
-    // Future: about, contact, custom pages
+    home: Omit<PageSpec, "theme">;
+    products: Omit<PageSpec, "theme">;
+    product_detail: Omit<PageSpec, "theme">;
   };
 }
 
 // ============================================================================
-// HELPER TYPES FOR BUILDER UI
+// BUILDER HELPER TYPES
 // ============================================================================
 
 export interface ComponentDefinition {
@@ -241,10 +403,12 @@ export interface ComponentDefinition {
   label: string;
   icon: string; // Lucide icon name
   description: string;
+  /** Which pages this component can be added to */
+  allowedPages: PageType[];
   defaultData: PageComponent["data"];
 }
 
 export interface DragItem {
   type: ComponentType;
-  index?: number; // If dragging existing component
+  index?: number;
 }

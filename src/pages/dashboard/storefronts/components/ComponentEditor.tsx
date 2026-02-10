@@ -17,9 +17,9 @@ import type { PageComponent } from "@/types/storefront.design";
 import { uploadImageToCloudinary } from "@/lib/cloudinaryUpload";
 import { RichTextEditor } from "./RichTextEditor";
 
-// ──────────────────────────────────────────────
-// Main Editor
-// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────
+// Shell
+// ──────────────────────────────────────────────────────
 
 interface ComponentEditorProps {
   component: PageComponent;
@@ -38,12 +38,11 @@ export function ComponentEditor({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="p-4 border-b flex items-center justify-between bg-white sticky top-0 z-10">
         <div>
           <h3 className="font-bold">Edit Component</h3>
           <p className="text-xs text-gray-600 capitalize">
-            {component.type.replace("_", " ")}
+            {component.type.replace(/_/g, " ")}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
@@ -51,7 +50,6 @@ export function ComponentEditor({
         </Button>
       </div>
 
-      {/* Editor Content */}
       <div className="flex-1 overflow-auto p-4 space-y-6">
         {component.type === "hero" && (
           <HeroEditor data={component.data} onUpdate={updateData} />
@@ -74,14 +72,35 @@ export function ComponentEditor({
         {component.type === "spacer" && (
           <SpacerEditor data={component.data} onUpdate={updateData} />
         )}
+        {component.type === "products_header" && (
+          <ProductsHeaderEditor data={component.data} onUpdate={updateData} />
+        )}
+        {component.type === "products_filter_bar" && (
+          <ProductsFilterBarEditor
+            data={component.data}
+            onUpdate={updateData}
+          />
+        )}
+        {component.type === "product_images" && (
+          <ProductImagesEditor data={component.data} onUpdate={updateData} />
+        )}
+        {component.type === "product_info" && (
+          <ProductInfoEditor data={component.data} onUpdate={updateData} />
+        )}
+        {component.type === "product_tabs" && (
+          <ProductTabsEditor data={component.data} onUpdate={updateData} />
+        )}
+        {component.type === "related_products" && (
+          <RelatedProductsEditor data={component.data} onUpdate={updateData} />
+        )}
       </div>
     </div>
   );
 }
 
-// ──────────────────────────────────────────────
-// Individual Editors – strongly typed
-// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────
+// SHARED COMPONENT EDITORS (unchanged from original)
+// ──────────────────────────────────────────────────────
 
 function HeroEditor({
   data,
@@ -89,7 +108,7 @@ function HeroEditor({
 }: {
   data: Extract<PageComponent, { type: "hero" }>["data"];
   onUpdate: (
-    updates: Partial<Extract<PageComponent, { type: "hero" }>["data"]>,
+    u: Partial<Extract<PageComponent, { type: "hero" }>["data"]>,
   ) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -97,13 +116,10 @@ function HeroEditor({
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
-      const url = await uploadImageToCloudinary(file);
-      onUpdate({ backgroundImage: url });
-    } catch (error) {
-      console.error(error);
+      onUpdate({ backgroundImage: await uploadImageToCloudinary(file) });
+    } catch {
       alert("Failed to upload image");
     } finally {
       setUploading(false);
@@ -119,7 +135,6 @@ function HeroEditor({
           onChange={(e) => onUpdate({ title: e.target.value })}
         />
       </div>
-
       <div>
         <Label>Subtitle (optional)</Label>
         <Input
@@ -169,11 +184,10 @@ function HeroEditor({
         <Label>Background Color</Label>
         <Input
           type="color"
-          value={data.backgroundColor ?? "#ffffff"}
+          value={data.backgroundColor ?? "#1e293b"}
           onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
         />
       </div>
-
       <div>
         <Label>Text Color</Label>
         <Input
@@ -187,14 +201,12 @@ function HeroEditor({
         <Label>Height</Label>
         <Select
           value={data.height}
-          onValueChange={(value) =>
-            onUpdate({ height: value as typeof data.height })
-          }
+          onValueChange={(v) => onUpdate({ height: v as typeof data.height })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="small">Small (300px)</SelectItem>
             <SelectItem value="medium">Medium (500px)</SelectItem>
             <SelectItem value="large">Large (700px)</SelectItem>
@@ -207,14 +219,14 @@ function HeroEditor({
         <Label>Text Alignment</Label>
         <Select
           value={data.textAlign}
-          onValueChange={(value) =>
-            onUpdate({ textAlign: value as typeof data.textAlign })
+          onValueChange={(v) =>
+            onUpdate({ textAlign: v as typeof data.textAlign })
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="left">Left</SelectItem>
             <SelectItem value="center">Center</SelectItem>
             <SelectItem value="right">Right</SelectItem>
@@ -222,25 +234,24 @@ function HeroEditor({
         </Select>
       </div>
 
-      {/* Overlay */}
       <div className="border-t pt-4">
         <div className="flex items-center justify-between mb-2">
           <Label>Overlay</Label>
           <Switch
+            className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
             checked={data.overlay?.enabled ?? false}
             onCheckedChange={(checked) =>
               onUpdate({
                 overlay: {
+                  color: "#000000",
+                  opacity: 40,
                   ...data.overlay,
                   enabled: checked,
-                  color: data.overlay?.color ?? "#000000",
-                  opacity: data.overlay?.opacity ?? 50,
                 },
               })
             }
           />
         </div>
-
         {data.overlay?.enabled && (
           <div className="space-y-2 mt-2">
             <div>
@@ -278,25 +289,25 @@ function HeroEditor({
         )}
       </div>
 
-      {/* CTA */}
       <div className="border-t pt-4">
         <div className="flex items-center justify-between mb-2">
-          <Label>Call to Action Button</Label>
+          <Label>CTA Button</Label>
           <Switch
+            className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
             checked={data.cta?.enabled ?? false}
             onCheckedChange={(checked) =>
               onUpdate({
                 cta: {
-                  ...data.cta!,
+                  text: "Shop Now",
+                  url: "/products",
+                  style: "primary",
+                  ...data.cta,
                   enabled: checked,
-                  text: data.cta?.text ?? "Shop Now",
-                  url: data.cta?.url ?? "",
-                }!,
+                },
               })
             }
           />
         </div>
-
         {data.cta?.enabled && (
           <div className="space-y-2 mt-2">
             <div>
@@ -304,9 +315,7 @@ function HeroEditor({
               <Input
                 value={data.cta.text}
                 onChange={(e) =>
-                  onUpdate({
-                    cta: { ...data.cta!, text: e.target.value },
-                  })
+                  onUpdate({ cta: { ...data.cta!, text: e.target.value } })
                 }
               />
             </div>
@@ -315,9 +324,7 @@ function HeroEditor({
               <Input
                 value={data.cta.url ?? ""}
                 onChange={(e) =>
-                  onUpdate({
-                    cta: { ...data.cta!, url: e.target.value },
-                  })
+                  onUpdate({ cta: { ...data.cta!, url: e.target.value } })
                 }
               />
             </div>
@@ -328,15 +335,13 @@ function HeroEditor({
   );
 }
 
-// ──────────────────────────────────────────────
-
 function BannerEditor({
   data,
   onUpdate,
 }: {
   data: Extract<PageComponent, { type: "banner" }>["data"];
   onUpdate: (
-    updates: Partial<Extract<PageComponent, { type: "banner" }>["data"]>,
+    u: Partial<Extract<PageComponent, { type: "banner" }>["data"]>,
   ) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -344,31 +349,19 @@ function BannerEditor({
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
-      const url = await uploadImageToCloudinary(file);
       onUpdate({
-        images: [...data.images, { url, alt: file.name }],
+        images: [
+          ...data.images,
+          { url: await uploadImageToCloudinary(file), alt: file.name },
+        ],
       });
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Failed to upload image");
     } finally {
       setUploading(false);
     }
-  };
-
-  const removeImage = (index: number) => {
-    onUpdate({
-      images: data.images.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateImageLink = (index: number, link: string) => {
-    const updated = [...data.images];
-    updated[index] = { ...updated[index], link };
-    onUpdate({ images: updated });
   };
 
   return (
@@ -386,20 +379,27 @@ function BannerEditor({
               <Input
                 placeholder="Click-through URL (optional)"
                 value={img.link ?? ""}
-                onChange={(e) => updateImageLink(index, e.target.value)}
+                onChange={(e) => {
+                  const updated = [...data.images];
+                  updated[index] = { ...updated[index], link: e.target.value };
+                  onUpdate({ images: updated });
+                }}
                 className="text-xs mb-2"
               />
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => removeImage(index)}
+                onClick={() =>
+                  onUpdate({
+                    images: data.images.filter((_, i) => i !== index),
+                  })
+                }
                 className="w-full text-red-600"
               >
                 <Trash2 className="h-3 w-3 mr-1" /> Remove
               </Button>
             </Card>
           ))}
-
           <label>
             <input
               type="file"
@@ -417,34 +417,30 @@ function BannerEditor({
           </label>
         </div>
       </div>
-
       <div>
         <Label>Height</Label>
         <Select
           value={data.height}
-          onValueChange={(value) =>
-            onUpdate({ height: value as typeof data.height })
-          }
+          onValueChange={(v) => onUpdate({ height: v as typeof data.height })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="small">Small (300px)</SelectItem>
             <SelectItem value="medium">Medium (500px)</SelectItem>
             <SelectItem value="large">Large (700px)</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div className="flex items-center justify-between">
         <Label>Auto-play</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.autoPlay}
-          onCheckedChange={(checked) => onUpdate({ autoPlay: checked })}
+          onCheckedChange={(c) => onUpdate({ autoPlay: c })}
         />
       </div>
-
       {data.autoPlay && (
         <div>
           <Label>Interval (seconds)</Label>
@@ -458,27 +454,25 @@ function BannerEditor({
           />
         </div>
       )}
-
       <div className="flex items-center justify-between">
         <Label>Show Dots</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.showDots}
-          onCheckedChange={(checked) => onUpdate({ showDots: checked })}
+          onCheckedChange={(c) => onUpdate({ showDots: c })}
         />
       </div>
-
       <div className="flex items-center justify-between">
         <Label>Show Arrows</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.showArrows}
-          onCheckedChange={(checked) => onUpdate({ showArrows: checked })}
+          onCheckedChange={(c) => onUpdate({ showArrows: c })}
         />
       </div>
     </div>
   );
 }
-
-// ──────────────────────────────────────────────
 
 function TextEditor({
   data,
@@ -486,7 +480,7 @@ function TextEditor({
 }: {
   data: Extract<PageComponent, { type: "text" }>["data"];
   onUpdate: (
-    updates: Partial<Extract<PageComponent, { type: "text" }>["data"]>,
+    u: Partial<Extract<PageComponent, { type: "text" }>["data"]>,
   ) => void;
 }) {
   return (
@@ -498,19 +492,18 @@ function TextEditor({
           onChange={(content) => onUpdate({ content })}
         />
       </div>
-
       <div>
         <Label>Max Width</Label>
         <Select
           value={data.maxWidth}
-          onValueChange={(value) =>
-            onUpdate({ maxWidth: value as typeof data.maxWidth })
+          onValueChange={(v) =>
+            onUpdate({ maxWidth: v as typeof data.maxWidth })
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="full">Full Width</SelectItem>
             <SelectItem value="narrow">Narrow (640px)</SelectItem>
             <SelectItem value="medium">Medium (768px)</SelectItem>
@@ -518,26 +511,41 @@ function TextEditor({
           </SelectContent>
         </Select>
       </div>
-
       <div>
         <Label>Text Alignment</Label>
         <Select
           value={data.textAlign}
-          onValueChange={(value) =>
-            onUpdate({ textAlign: value as typeof data.textAlign })
+          onValueChange={(v) =>
+            onUpdate({ textAlign: v as typeof data.textAlign })
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="left">Left</SelectItem>
             <SelectItem value="center">Center</SelectItem>
             <SelectItem value="right">Right</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
+      <div>
+        <Label>Padding</Label>
+        <Select
+          value={data.padding}
+          onValueChange={(v) => onUpdate({ padding: v as typeof data.padding })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="none">None</SelectItem>
+            <SelectItem value="small">Small</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="large">Large</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div>
         <Label>Background Color (optional)</Label>
         <div className="flex gap-2">
@@ -557,31 +565,9 @@ function TextEditor({
           )}
         </div>
       </div>
-
-      <div>
-        <Label>Padding</Label>
-        <Select
-          value={data.padding}
-          onValueChange={(value) =>
-            onUpdate({ padding: value as typeof data.padding })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            <SelectItem value="small">Small</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="large">Large</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
     </div>
   );
 }
-
-// ──────────────────────────────────────────────
 
 function ProductGridEditor({
   data,
@@ -589,7 +575,7 @@ function ProductGridEditor({
 }: {
   data: Extract<PageComponent, { type: "product_grid" }>["data"];
   onUpdate: (
-    updates: Partial<Extract<PageComponent, { type: "product_grid" }>["data"]>,
+    u: Partial<Extract<PageComponent, { type: "product_grid" }>["data"]>,
   ) => void;
 }) {
   return (
@@ -602,30 +588,26 @@ function ProductGridEditor({
           placeholder="Featured Products"
         />
       </div>
-
       <div>
         <Label>Columns</Label>
         <Select
           value={String(data.columns)}
-          onValueChange={(value) =>
-            onUpdate({
-              columns: Number(value) as 2 | 3 | 4 | 5 | 6 | undefined,
-            })
+          onValueChange={(v) =>
+            onUpdate({ columns: Number(v) as 2 | 3 | 4 | 5 | 6 })
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="2">2 Columns</SelectItem>
-            <SelectItem value="3">3 Columns</SelectItem>
-            <SelectItem value="4">4 Columns</SelectItem>
-            <SelectItem value="5">5 Columns</SelectItem>
-            <SelectItem value="6">6 Columns</SelectItem>
+          <SelectContent className="bg-white">
+            <SelectItem value="2">2</SelectItem>
+            <SelectItem value="3">3</SelectItem>
+            <SelectItem value="4">4</SelectItem>
+            <SelectItem value="5">5</SelectItem>
+            <SelectItem value="6">6</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div>
         <Label>Max Products</Label>
         <Input
@@ -636,87 +618,66 @@ function ProductGridEditor({
           max="100"
         />
       </div>
-
       <div>
         <Label>Sort Order</Label>
-        <Select
+        <SortOrderSelect
           value={data.sortOrder}
-          onValueChange={(value) =>
-            onUpdate({ sortOrder: value as typeof data.sortOrder })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest_first">Newest First</SelectItem>
-            <SelectItem value="oldest_first">Oldest First</SelectItem>
-            <SelectItem value="price_low_high">Price: Low to High</SelectItem>
-            <SelectItem value="price_high_low">Price: High to Low</SelectItem>
-            <SelectItem value="name_a_z">Name: A-Z</SelectItem>
-            <SelectItem value="name_z_a">Name: Z-A</SelectItem>
-          </SelectContent>
-        </Select>
+          onValueChange={(v) => onUpdate({ sortOrder: v })}
+        />
       </div>
-
       <div>
         <Label>Card Style</Label>
         <Select
           value={data.cardStyle}
-          onValueChange={(value) =>
-            onUpdate({ cardStyle: value as typeof data.cardStyle })
+          onValueChange={(v) =>
+            onUpdate({ cardStyle: v as typeof data.cardStyle })
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="minimal">Minimal</SelectItem>
             <SelectItem value="bordered">Bordered</SelectItem>
             <SelectItem value="shadow">Shadow</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div>
         <Label>Spacing</Label>
         <Select
           value={data.spacing}
-          onValueChange={(value) =>
-            onUpdate({ spacing: value as typeof data.spacing })
-          }
+          onValueChange={(v) => onUpdate({ spacing: v as typeof data.spacing })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="compact">Compact</SelectItem>
             <SelectItem value="normal">Normal</SelectItem>
             <SelectItem value="relaxed">Relaxed</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div className="flex items-center justify-between">
         <Label>Show Price</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.showPrice}
-          onCheckedChange={(checked) => onUpdate({ showPrice: checked })}
+          onCheckedChange={(c) => onUpdate({ showPrice: c })}
         />
       </div>
-
       <div className="flex items-center justify-between">
         <Label>Show SKU</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.showSku}
-          onCheckedChange={(checked) => onUpdate({ showSku: checked })}
+          onCheckedChange={(c) => onUpdate({ showSku: c })}
         />
       </div>
     </div>
   );
 }
-
-// ──────────────────────────────────────────────
 
 function ProductCarouselEditor({
   data,
@@ -724,9 +685,7 @@ function ProductCarouselEditor({
 }: {
   data: Extract<PageComponent, { type: "product_carousel" }>["data"];
   onUpdate: (
-    updates: Partial<
-      Extract<PageComponent, { type: "product_carousel" }>["data"]
-    >,
+    u: Partial<Extract<PageComponent, { type: "product_carousel" }>["data"]>,
   ) => void;
 }) {
   return (
@@ -736,10 +695,8 @@ function ProductCarouselEditor({
         <Input
           value={data.title ?? ""}
           onChange={(e) => onUpdate({ title: e.target.value })}
-          placeholder="New Arrivals"
         />
       </div>
-
       <div>
         <Label>Max Products</Label>
         <Input
@@ -750,59 +707,40 @@ function ProductCarouselEditor({
           max="50"
         />
       </div>
-
       <div>
         <Label>Items Per View</Label>
         <Select
           value={String(data.itemsPerView)}
-          onValueChange={(value) =>
-            onUpdate({
-              itemsPerView: Number(value) as 2 | 3 | 4 | 5 | undefined,
-            })
+          onValueChange={(v) =>
+            onUpdate({ itemsPerView: Number(v) as 2 | 3 | 4 | 5 })
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="2">2 Items</SelectItem>
-            <SelectItem value="3">3 Items</SelectItem>
-            <SelectItem value="4">4 Items</SelectItem>
-            <SelectItem value="5">5 Items</SelectItem>
+          <SelectContent className="bg-white">
+            <SelectItem value="2">2</SelectItem>
+            <SelectItem value="3">3</SelectItem>
+            <SelectItem value="4">4</SelectItem>
+            <SelectItem value="5">5</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div>
         <Label>Sort Order</Label>
-        <Select
+        <SortOrderSelect
           value={data.sortOrder}
-          onValueChange={(value) =>
-            onUpdate({ sortOrder: value as typeof data.sortOrder })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest_first">Newest First</SelectItem>
-            <SelectItem value="oldest_first">Oldest First</SelectItem>
-            <SelectItem value="price_low_high">Price: Low to High</SelectItem>
-            <SelectItem value="price_high_low">Price: High to Low</SelectItem>
-            <SelectItem value="name_a_z">Name: A-Z</SelectItem>
-            <SelectItem value="name_z_a">Name: Z-A</SelectItem>
-          </SelectContent>
-        </Select>
+          onValueChange={(v) => onUpdate({ sortOrder: v })}
+        />
       </div>
-
       <div className="flex items-center justify-between">
         <Label>Auto-play</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.autoPlay}
-          onCheckedChange={(checked) => onUpdate({ autoPlay: checked })}
+          onCheckedChange={(c) => onUpdate({ autoPlay: c })}
         />
       </div>
-
       {data.autoPlay && (
         <div>
           <Label>Interval (seconds)</Label>
@@ -816,27 +754,25 @@ function ProductCarouselEditor({
           />
         </div>
       )}
-
       <div className="flex items-center justify-between">
         <Label>Show Price</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.showPrice}
-          onCheckedChange={(checked) => onUpdate({ showPrice: checked })}
+          onCheckedChange={(c) => onUpdate({ showPrice: c })}
         />
       </div>
-
       <div className="flex items-center justify-between">
         <Label>Show SKU</Label>
         <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
           checked={data.showSku}
-          onCheckedChange={(checked) => onUpdate({ showSku: checked })}
+          onCheckedChange={(c) => onUpdate({ showSku: c })}
         />
       </div>
     </div>
   );
 }
-
-// ──────────────────────────────────────────────
 
 function ImageGalleryEditor({
   data,
@@ -844,35 +780,27 @@ function ImageGalleryEditor({
 }: {
   data: Extract<PageComponent, { type: "image_gallery" }>["data"];
   onUpdate: (
-    updates: Partial<Extract<PageComponent, { type: "image_gallery" }>["data"]>,
+    u: Partial<Extract<PageComponent, { type: "image_gallery" }>["data"]>,
   ) => void;
 }) {
   const [uploading, setUploading] = useState(false);
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
-      const url = await uploadImageToCloudinary(file);
       onUpdate({
-        images: [...data.images, { url, alt: file.name }],
+        images: [
+          ...data.images,
+          { url: await uploadImageToCloudinary(file), alt: file.name },
+        ],
       });
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Failed to upload image");
     } finally {
       setUploading(false);
     }
   };
-
-  const removeImage = (index: number) => {
-    onUpdate({
-      images: data.images.filter((_, i) => i !== index),
-    });
-  };
-
   return (
     <div className="space-y-4">
       <div>
@@ -888,14 +816,17 @@ function ImageGalleryEditor({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => removeImage(index)}
+                onClick={() =>
+                  onUpdate({
+                    images: data.images.filter((_, i) => i !== index),
+                  })
+                }
                 className="w-full text-red-600"
               >
                 <Trash2 className="h-3 w-3 mr-1" /> Remove
               </Button>
             </Card>
           ))}
-
           <label>
             <input
               type="file"
@@ -913,54 +844,47 @@ function ImageGalleryEditor({
           </label>
         </div>
       </div>
-
       <div>
         <Label>Layout</Label>
         <Select
           value={data.layout}
-          onValueChange={(value) =>
-            onUpdate({ layout: value as typeof data.layout })
-          }
+          onValueChange={(v) => onUpdate({ layout: v as typeof data.layout })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="grid">Grid</SelectItem>
             <SelectItem value="masonry">Masonry</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div>
         <Label>Columns</Label>
         <Select
           value={String(data.columns)}
-          onValueChange={(value) =>
-            onUpdate({ columns: Number(value) as 2 | 3 | 4 | undefined })
-          }
+          onValueChange={(v) => onUpdate({ columns: Number(v) as 2 | 3 | 4 })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="2">2 Columns</SelectItem>
-            <SelectItem value="3">3 Columns</SelectItem>
-            <SelectItem value="4">4 Columns</SelectItem>
+          <SelectContent className="bg-white">
+            <SelectItem value="2">2</SelectItem>
+            <SelectItem value="3">3</SelectItem>
+            <SelectItem value="4">4</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div>
         <Label>Gap</Label>
         <Select
           value={data.gap}
-          onValueChange={(value) => onUpdate({ gap: value as typeof data.gap })}
+          onValueChange={(v) => onUpdate({ gap: v as typeof data.gap })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="small">Small</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="large">Large</SelectItem>
@@ -971,15 +895,13 @@ function ImageGalleryEditor({
   );
 }
 
-// ──────────────────────────────────────────────
-
 function SpacerEditor({
   data,
   onUpdate,
 }: {
   data: Extract<PageComponent, { type: "spacer" }>["data"];
   onUpdate: (
-    updates: Partial<Extract<PageComponent, { type: "spacer" }>["data"]>,
+    u: Partial<Extract<PageComponent, { type: "spacer" }>["data"]>,
   ) => void;
 }) {
   return (
@@ -988,14 +910,12 @@ function SpacerEditor({
         <Label>Height</Label>
         <Select
           value={data.height}
-          onValueChange={(value) =>
-            onUpdate({ height: value as typeof data.height })
-          }
+          onValueChange={(v) => onUpdate({ height: v as typeof data.height })}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="small">Small (1rem)</SelectItem>
             <SelectItem value="medium">Medium (2rem)</SelectItem>
             <SelectItem value="large">Large (4rem)</SelectItem>
@@ -1004,5 +924,552 @@ function SpacerEditor({
         </Select>
       </div>
     </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────
+// PRODUCTS PAGE EDITORS
+// ──────────────────────────────────────────────────────
+
+function ProductsHeaderEditor({
+  data,
+  onUpdate,
+}: {
+  data: Extract<PageComponent, { type: "products_header" }>["data"];
+  onUpdate: (
+    u: Partial<Extract<PageComponent, { type: "products_header" }>["data"]>,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Page Title</Label>
+        <Input
+          value={data.title}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label>Subtitle (optional)</Label>
+        <Input
+          value={data.subtitle ?? ""}
+          onChange={(e) => onUpdate({ subtitle: e.target.value })}
+          placeholder="Browse our catalogue"
+        />
+      </div>
+      <div>
+        <Label>Default Sort Order</Label>
+        <SortOrderSelect
+          value={data.defaultSortOrder}
+          onValueChange={(v) => onUpdate({ defaultSortOrder: v })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show Result Count</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showResultCount}
+          onCheckedChange={(c) => onUpdate({ showResultCount: c })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show Sort Dropdown</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showSortDropdown}
+          onCheckedChange={(c) => onUpdate({ showSortDropdown: c })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProductsFilterBarEditor({
+  data,
+  onUpdate,
+}: {
+  data: Extract<PageComponent, { type: "products_filter_bar" }>["data"];
+  onUpdate: (
+    u: Partial<Extract<PageComponent, { type: "products_filter_bar" }>["data"]>,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label>Price Filter</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showPriceFilter}
+          onCheckedChange={(c) => onUpdate({ showPriceFilter: c })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Type Filter (simple/variable)</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showTypeFilter}
+          onCheckedChange={(c) => onUpdate({ showTypeFilter: c })}
+        />
+      </div>
+      <div>
+        <Label>Filter Position</Label>
+        <Select
+          value={data.filterPosition}
+          onValueChange={(v) =>
+            onUpdate({ filterPosition: v as typeof data.filterPosition })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="top">Top (horizontal)</SelectItem>
+            <SelectItem value="side">Side (vertical)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Sticky on scroll</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.sticky}
+          onCheckedChange={(c) => onUpdate({ sticky: c })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────
+// PRODUCT DETAIL EDITORS
+// ──────────────────────────────────────────────────────
+
+function ProductImagesEditor({
+  data,
+  onUpdate,
+}: {
+  data: Extract<PageComponent, { type: "product_images" }>["data"];
+  onUpdate: (
+    u: Partial<Extract<PageComponent, { type: "product_images" }>["data"]>,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Gallery Layout</Label>
+        <Select
+          value={data.layout}
+          onValueChange={(v) => onUpdate({ layout: v as typeof data.layout })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="stack">Stack (single image)</SelectItem>
+            <SelectItem value="grid">Grid</SelectItem>
+            <SelectItem value="carousel">Carousel</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Image Aspect Ratio</Label>
+        <Select
+          value={data.mainImageAspect}
+          onValueChange={(v) =>
+            onUpdate({ mainImageAspect: v as typeof data.mainImageAspect })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="square">Square (1:1)</SelectItem>
+            <SelectItem value="portrait">Portrait (3:4)</SelectItem>
+            <SelectItem value="landscape">Landscape (16:9)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show Thumbnails</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showThumbnails}
+          onCheckedChange={(c) => onUpdate({ showThumbnails: c })}
+        />
+      </div>
+      {data.showThumbnails && (
+        <div>
+          <Label>Thumbnail Position</Label>
+          <Select
+            value={data.thumbnailPosition}
+            onValueChange={(v) =>
+              onUpdate({
+                thumbnailPosition: v as typeof data.thumbnailPosition,
+              })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="bottom">Bottom</SelectItem>
+              <SelectItem value="left">Left</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <Label>Zoom on hover</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.zoomOnHover}
+          onCheckedChange={(c) => onUpdate({ zoomOnHover: c })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProductInfoEditor({
+  data,
+  onUpdate,
+}: {
+  data: Extract<PageComponent, { type: "product_info" }>["data"];
+  onUpdate: (
+    u: Partial<Extract<PageComponent, { type: "product_info" }>["data"]>,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Add to Cart Button Text</Label>
+        <Input
+          value={data.addToCartButtonText}
+          onChange={(e) => onUpdate({ addToCartButtonText: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label>Price Position</Label>
+        <Select
+          value={data.pricePosition}
+          onValueChange={(v) =>
+            onUpdate({ pricePosition: v as typeof data.pricePosition })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="below_name">Below product name</SelectItem>
+            <SelectItem value="above_cart">Above add-to-cart</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show SKU</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showSku}
+          onCheckedChange={(c) => onUpdate({ showSku: c })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show Stock Status</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showStockStatus}
+          onCheckedChange={(c) => onUpdate({ showStockStatus: c })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show Variant Selector</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showVariantSelector}
+          onCheckedChange={(c) => onUpdate({ showVariantSelector: c })}
+        />
+      </div>
+      {data.showVariantSelector && (
+        <div>
+          <Label>Variant Selector Style</Label>
+          <Select
+            value={data.variantSelectorStyle}
+            onValueChange={(v) =>
+              onUpdate({
+                variantSelectorStyle: v as typeof data.variantSelectorStyle,
+              })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="buttons">Buttons</SelectItem>
+              <SelectItem value="dropdown">Dropdown</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <Label>Show Quantity Selector</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showQuantitySelector}
+          onCheckedChange={(c) => onUpdate({ showQuantitySelector: c })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Show Share Buttons</Label>
+        <Switch
+          className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+          checked={data.showShareButtons}
+          onCheckedChange={(c) => onUpdate({ showShareButtons: c })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProductTabsEditor({
+  data,
+  onUpdate,
+}: {
+  data: Extract<PageComponent, { type: "product_tabs" }>["data"];
+  onUpdate: (
+    u: Partial<Extract<PageComponent, { type: "product_tabs" }>["data"]>,
+  ) => void;
+}) {
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+
+  const updateTab = (id: string, updates: Partial<(typeof data.tabs)[0]>) => {
+    onUpdate({
+      tabs: data.tabs.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    });
+  };
+  const addTab = () => {
+    const newId = `tab-${Date.now()}`;
+    onUpdate({
+      tabs: [
+        ...data.tabs,
+        {
+          id: newId,
+          label: "New Tab",
+          content: "<p>Content here...</p>",
+          enabled: true,
+        },
+      ],
+    });
+    setEditingTabId(newId);
+  };
+  const removeTab = (id: string) => {
+    onUpdate({ tabs: data.tabs.filter((t) => t.id !== id) });
+    if (editingTabId === id) setEditingTabId(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Tab Style</Label>
+        <Select
+          value={data.tabStyle}
+          onValueChange={(v) =>
+            onUpdate({ tabStyle: v as typeof data.tabStyle })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="underline">Underline</SelectItem>
+            <SelectItem value="pills">Pills</SelectItem>
+            <SelectItem value="boxed">Boxed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="border-t pt-4">
+        <Label className="mb-2 block">Tabs</Label>
+        <div className="space-y-2">
+          {data.tabs.map((tab) => (
+            <div key={tab.id} className="border rounded overflow-hidden">
+              {/* Tab header row */}
+              <div className="flex items-center gap-2 p-2 bg-gray-50">
+                <Switch
+                  className="bg-black data-[state=checked]:bg-black [&>span]:bg-white"
+                  checked={tab.enabled}
+                  onCheckedChange={(c) => updateTab(tab.id, { enabled: c })}
+                />
+                <Input
+                  value={tab.label}
+                  onChange={(e) => updateTab(tab.id, { label: e.target.value })}
+                  className="h-7 text-sm flex-1"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setEditingTabId(editingTabId === tab.id ? null : tab.id)
+                  }
+                  className="h-7 px-2 text-xs"
+                >
+                  {editingTabId === tab.id ? "Done" : "Edit"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeTab(tab.id)}
+                  className="h-7 w-7 p-0 text-red-500 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              {/* Content editor — only shown when tab is being edited */}
+              {editingTabId === tab.id && (
+                <div className="p-2 border-t">
+                  <RichTextEditor
+                    value={tab.content}
+                    onChange={(content) => updateTab(tab.id, { content })}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={addTab}
+          className="mt-2 w-full"
+        >
+          <Plus className="h-3 w-3 mr-1" /> Add Tab
+        </Button>
+      </div>
+
+      {data.tabs.length > 0 && (
+        <div>
+          <Label>Default Open Tab</Label>
+          <Select
+            value={data.defaultTab}
+            onValueChange={(v) => onUpdate({ defaultTab: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              {data.tabs
+                .filter((t) => t.enabled)
+                .map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RelatedProductsEditor({
+  data,
+  onUpdate,
+}: {
+  data: Extract<PageComponent, { type: "related_products" }>["data"];
+  onUpdate: (
+    u: Partial<Extract<PageComponent, { type: "related_products" }>["data"]>,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Section Title</Label>
+        <Input
+          value={data.title}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label>Max Products</Label>
+        <Input
+          type="number"
+          value={data.limit}
+          onChange={(e) => onUpdate({ limit: Number(e.target.value) })}
+          min="1"
+          max="12"
+        />
+      </div>
+      <div>
+        <Label>Sort Order</Label>
+        <SortOrderSelect
+          value={data.sortOrder}
+          onValueChange={(v) => onUpdate({ sortOrder: v })}
+        />
+      </div>
+      <div>
+        <Label>Columns</Label>
+        <Select
+          value={String(data.columns)}
+          onValueChange={(v) => onUpdate({ columns: Number(v) as 2 | 3 | 4 })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="2">2</SelectItem>
+            <SelectItem value="3">3</SelectItem>
+            <SelectItem value="4">4</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Card Style</Label>
+        <Select
+          value={data.cardStyle}
+          onValueChange={(v) =>
+            onUpdate({ cardStyle: v as typeof data.cardStyle })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="minimal">Minimal</SelectItem>
+            <SelectItem value="bordered">Bordered</SelectItem>
+            <SelectItem value="shadow">Shadow</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────
+// SHARED HELPERS
+// ──────────────────────────────────────────────────────
+
+import type { ProductSortOrder } from "@/types/storefront.design";
+
+function SortOrderSelect({
+  value,
+  onValueChange,
+}: {
+  value: ProductSortOrder;
+  onValueChange: (v: ProductSortOrder) => void;
+}) {
+  return (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="bg-white">
+        <SelectItem value="newest_first">Newest First</SelectItem>
+        <SelectItem value="oldest_first">Oldest First</SelectItem>
+        <SelectItem value="price_low_high">Price: Low to High</SelectItem>
+        <SelectItem value="price_high_low">Price: High to Low</SelectItem>
+        <SelectItem value="name_a_z">Name: A → Z</SelectItem>
+        <SelectItem value="name_z_a">Name: Z → A</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }

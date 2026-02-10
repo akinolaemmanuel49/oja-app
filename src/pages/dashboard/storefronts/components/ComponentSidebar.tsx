@@ -7,16 +7,23 @@ import {
   Repeat,
   Images,
   Space,
+  ListFilter,
+  SlidersHorizontal,
+  ImagePlay,
+  ShoppingBag,
+  BookOpen,
+  LayoutGrid,
 } from "lucide-react";
 
-import { COMPONENT_REGISTRY } from "@/lib/storefrontComponentsRegistry";
-import type { ComponentType } from "@/types/storefront.design";
+import { getComponentsForPage } from "@/lib/storefrontComponentsRegistry";
+import type { ComponentType, PageType } from "@/types/storefront.design";
+import { PAGE_TYPE_LABELS } from "@/types/storefront.design";
 
 interface ComponentSidebarProps {
+  activePage: PageType;
   onAddComponent: (type: ComponentType) => void;
 }
 
-// Icon mapping
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Sparkles,
   Image,
@@ -25,38 +32,57 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Repeat,
   Images,
   Space,
+  ListFilter,
+  SlidersHorizontal,
+  ImagePlay,
+  ShoppingBag,
+  BookOpen,
+  LayoutGrid,
 };
 
 /**
- * Sidebar showing all available components
- * Click to add component to canvas
+ * Sidebar — only shows components that are allowed on the active page.
+ * Switching pages in the designer automatically updates this list.
  */
-export function ComponentSidebar({ onAddComponent }: ComponentSidebarProps) {
-  const components = Object.values(COMPONENT_REGISTRY);
+export function ComponentSidebar({
+  activePage,
+  onAddComponent,
+}: ComponentSidebarProps) {
+  const components = getComponentsForPage(activePage);
 
   return (
-    <div className="w-64 bg-white border-r overflow-auto">
+    <div className="w-64 bg-white border-r overflow-auto shrink-0">
       <div className="p-4">
-        <h2 className="text-lg font-bold mb-4">Components</h2>
+        <div className="mb-4">
+          <h2 className="text-base font-bold">Components</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            For the{" "}
+            <span className="font-medium text-gray-700">
+              {PAGE_TYPE_LABELS[activePage]}
+            </span>{" "}
+            page
+          </p>
+        </div>
 
         <div className="space-y-2">
           {components.map((component) => {
-            const Icon = ICON_MAP[component.icon] || Sparkles;
-
+            const Icon = ICON_MAP[component.icon] ?? Sparkles;
             return (
               <Card
                 key={component.type}
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => onAddComponent(component.type)}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-3">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-blue-50 rounded">
-                      <Icon className="h-5 w-5 text-blue-600" />
+                    <div className="p-1.5 bg-blue-50 rounded shrink-0">
+                      <Icon className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm">{component.label}</h3>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                      <h3 className="font-medium text-sm leading-tight">
+                        {component.label}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                         {component.description}
                       </p>
                     </div>
@@ -67,14 +93,17 @@ export function ComponentSidebar({ onAddComponent }: ComponentSidebarProps) {
           })}
         </div>
 
-        {/* Quick Tips */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-medium text-sm mb-2">💡 Quick Tips</h3>
-          <ul className="text-xs text-gray-700 space-y-1">
-            <li>• Click a component to add it</li>
-            <li>• Drag to reorder components</li>
-            <li>• Click to edit properties</li>
-            <li>• Download spec when done</li>
+        <div className="mt-5 p-3 bg-blue-50 rounded-lg">
+          <p className="font-medium text-xs mb-1.5">💡 Tips</p>
+          <ul className="text-xs text-gray-600 space-y-1">
+            <li>• Click to add a component</li>
+            <li>• Drag to reorder</li>
+            {activePage === "product_detail" && (
+              <li>• Product Images &amp; Info are required</li>
+            )}
+            {activePage === "products" && (
+              <li>• Products Header controls default sort</li>
+            )}
           </ul>
         </div>
       </div>

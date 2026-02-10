@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { GripVertical, Trash2, Copy, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import type { PageComponent, ThemeConfig } from "@/types/storefront.design";
+import type {
+  PageComponent,
+  ThemeConfig,
+  PageType,
+} from "@/types/storefront.design";
+import { PAGE_TYPE_LABELS } from "@/types/storefront.design";
 import { ComponentPreview } from "./ComponentPreview";
 
 interface CanvasAreaProps {
@@ -16,10 +21,12 @@ interface CanvasAreaProps {
   onDuplicateComponent: (id: string) => void;
   viewMode: "desktop" | "mobile";
   theme: ThemeConfig;
+  activePage: PageType;
 }
 
 /**
- * Main canvas area where components are displayed and edited
+ * Main canvas — renders sorted, draggable component cards.
+ * Empty state is page-aware so the message is always relevant.
  */
 export function CanvasArea({
   components,
@@ -29,8 +36,8 @@ export function CanvasArea({
   onDuplicateComponent,
   viewMode,
   theme,
+  activePage,
 }: CanvasAreaProps) {
-  // Calculate canvas width based on view mode
   const canvasMaxWidth = viewMode === "desktop" ? "100%" : "375px";
 
   return (
@@ -41,24 +48,28 @@ export function CanvasArea({
       >
         {components.length === 0 ? (
           <Card className="p-12 text-center border-dashed">
-            <p className="text-gray-500 mb-2">Your canvas is empty</p>
+            <p className="text-gray-500 mb-1 font-medium">
+              {PAGE_TYPE_LABELS[activePage]} page is empty
+            </p>
             <p className="text-sm text-gray-400">
-              Click on a component from the left sidebar to add it to your page
+              Click a component from the left sidebar to add it
             </p>
           </Card>
         ) : (
           <div className="space-y-4">
-            {components.map((component) => (
-              <SortableComponent
-                key={component.id}
-                component={component}
-                isSelected={component.id === selectedComponentId}
-                onSelect={() => onSelectComponent(component.id)}
-                onDelete={() => onDeleteComponent(component.id)}
-                onDuplicate={() => onDuplicateComponent(component.id)}
-                theme={theme}
-              />
-            ))}
+            {[...components]
+              .sort((a, b) => a.order - b.order)
+              .map((component) => (
+                <SortableComponent
+                  key={component.id}
+                  component={component}
+                  isSelected={component.id === selectedComponentId}
+                  onSelect={() => onSelectComponent(component.id)}
+                  onDelete={() => onDeleteComponent(component.id)}
+                  onDuplicate={() => onDuplicateComponent(component.id)}
+                  theme={theme}
+                />
+              ))}
           </div>
         )}
       </div>
@@ -66,9 +77,6 @@ export function CanvasArea({
   );
 }
 
-/**
- * Individual sortable component wrapper
- */
 interface SortableComponentProps {
   component: PageComponent;
   isSelected: boolean;
@@ -110,7 +118,6 @@ function SortableComponent({
         isSelected && "ring-2 ring-blue-500 ring-offset-2",
       )}
     >
-      {/* Component Card */}
       <Card
         className={cn(
           "cursor-pointer transition-all",
@@ -119,15 +126,14 @@ function SortableComponent({
         )}
         onClick={onSelect}
       >
-        {/* Toolbar - shows on hover or when selected */}
+        {/* Floating toolbar — visible on hover or selection */}
         <div
           className={cn(
-            "absolute -top-10 left-0 right-0 flex items-center gap-2 bg-white border rounded-t px-2 py-1 shadow-sm z-10",
+            "absolute -top-10 left-0 right-0 flex items-center gap-2",
+            "bg-white border rounded-t px-2 py-1 shadow-sm z-10 transition-opacity mt-4",
             !isSelected && "opacity-0 group-hover:opacity-100",
-            "transition-opacity",
           )}
         >
-          {/* Drag Handle */}
           <button
             {...attributes}
             {...listeners}
@@ -136,11 +142,10 @@ function SortableComponent({
             <GripVertical className="h-4 w-4 text-gray-400" />
           </button>
 
-          <span className="text-xs text-gray-600 font-medium flex-1">
-            {component.type.replace("_", " ").toUpperCase()}
+          <span className="text-xs text-gray-600 font-medium flex-1 truncate">
+            {component.type.replace(/_/g, " ").toUpperCase()}
           </span>
 
-          {/* Actions */}
           <Button
             variant="ghost"
             size="sm"
@@ -149,6 +154,7 @@ function SortableComponent({
               onDuplicate();
             }}
             className="h-7 w-7 p-0"
+            title="Duplicate"
           >
             <Copy className="h-3 w-3" />
           </Button>
@@ -161,18 +167,17 @@ function SortableComponent({
               onDelete();
             }}
             className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Delete"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
 
-        {/* Component Preview */}
         <div className="p-4 bg-gray-50 rounded">
           <ComponentPreview component={component} theme={theme} />
         </div>
       </Card>
 
-      {/* Selected Indicator */}
       {isSelected && (
         <div className="absolute -right-3 top-1/2 -translate-y-1/2 bg-blue-500 text-white p-1 rounded-full">
           <Settings className="h-3 w-3" />

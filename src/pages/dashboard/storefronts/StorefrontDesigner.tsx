@@ -18,19 +18,24 @@ import {
   ArrowLeft,
   Download,
   Eye,
-  Plus,
   Settings,
   Smartphone,
   Monitor,
+  Home,
+  ShoppingBag,
+  Package,
+  Upload,
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
-  PageSpec,
   PageComponent,
   ComponentType,
   ThemeConfig,
+  PageType,
+  StorefrontDesign,
 } from "@/types/storefront.design";
+import { PAGE_TYPE_LABELS } from "@/types/storefront.design";
 import { ComponentSidebar } from "./components/ComponentSidebar";
 import { CanvasArea } from "./components/CanvasArea";
 import { ComponentEditor } from "./components/ComponentEditor";
@@ -38,91 +43,153 @@ import { ThemeEditor } from "./components/ThemeEditor";
 import { PreviewDialog } from "./components/PreviewDialog";
 import {
   DEFAULT_THEME,
+  DEFAULT_PAGE_COMPONENTS,
   createComponent,
 } from "@/lib/storefrontComponentsRegistry";
+
+// ============================================================================
+// PAGE TAB CONFIG
+// ============================================================================
+
+const PAGE_TABS: Array<{
+  type: PageType;
+  icon: React.ReactNode;
+  label: string;
+}> = [
+  { type: "home", icon: <Home className="h-4 w-4" />, label: "Home" },
+  {
+    type: "products",
+    icon: <ShoppingBag className="h-4 w-4" />,
+    label: "Products",
+  },
+  {
+    type: "product_detail",
+    icon: <Package className="h-4 w-4" />,
+    label: "Product Detail",
+  },
+];
+
+// ============================================================================
+// STATE SHAPE
+// ============================================================================
+
+type PagesState = Record<PageType, PageComponent[]>;
 
 /**
  * Main Storefront Designer Page
  *
- * Features:
- * - Drag-and-drop page builder
- * - Component editing
- * - Theme customization
- * - Live preview
- * - JSON spec download
+ * State is now per-page: switching tabs swaps the active component list.
+ * Theme is shared across all pages (one source of truth).
+ * Download bundles everything into a single StorefrontDesign JSON.
  */
 export default function StorefrontDesigner() {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
 
-  // ============================================================================
+  // ──────────────────────────────
   // STATE
-  // ============================================================================
+  // ──────────────────────────────
 
-  const [pageTitle, setPageTitle] = useState("Home Page");
-  const [pageDescription, setPageDescription] = useState("");
+  const [activePage, setActivePage] = useState<PageType>("home");
   const [theme, setTheme] = useState<ThemeConfig>(DEFAULT_THEME);
-  const [components, setComponents] = useState<PageComponent[]>([]);
-  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(
-    null,
-  );
+
+  // Each page starts with sensible defaults so the canvas is never blank
+  const [pages, setPages] = useState<PagesState>({
+    home: DEFAULT_PAGE_COMPONENTS.home,
+    products: DEFAULT_PAGE_COMPONENTS.products,
+    product_detail: DEFAULT_PAGE_COMPONENTS.product_detail,
+  });
+
+  // Selected component ID tracked per-page so switching doesn't bleed over
+  const [selectedIds, setSelectedIds] = useState<
+    Record<PageType, string | null>
+  >({
+    home: null,
+    products: null,
+    product_detail: null,
+  });
+
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [showPreview, setShowPreview] = useState(false);
   const [showThemeEditor, setShowThemeEditor] = useState(false);
 
-  // ============================================================================
-  // DRAG AND DROP SETUP
-  // ============================================================================
+  // ──────────────────────────────
+  // DERIVED
+  // ──────────────────────────────
+
+  const activeComponents = pages[activePage];
+  const selectedComponentId = selectedIds[activePage];
+  const selectedComponent = activeComponents.find(
+    (c) => c.id === selectedComponentId,
+  );
+
+  // ──────────────────────────────
+  // PAGE SWITCHING
+  // ──────────────────────────────
+
+  const handlePageSwitch = (page: PageType) => {
+    setActivePage(page);
+    setShowThemeEditor(false);
+  };
+
+  // ──────────────────────────────
+  // COMPONENT MUTATION HELPERS
+  // ──────────────────────────────
+
+  const setActiveComponents = useCallback(
+    (updater: (prev: PageComponent[]) => PageComponent[]) => {
+      setPages((prev) => ({
+        ...prev,
+        [activePage]: updater(prev[activePage]),
+      }));
+    },
+    [activePage],
+  );
+
+  const setSelectedId = useCallback(
+    (id: string | null) => {
+      setSelectedIds((prev) => ({ ...prev, [activePage]: id }));
+    },
+    [activePage],
+  );
+
+  // ──────────────────────────────
+  // DND SETUP
+  // ──────────────────────────────
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts
-      },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
-
-  /**
-   * Handle adding a new component from sidebar
-   */
-  const handleAddComponent = useCallback(
-    (type: ComponentType) => {
-      const newComponent = createComponent(type, components.length);
-      setComponents((prev) => [...prev, newComponent]);
-      setSelectedComponentId(newComponent.id);
-    },
-    [components.length],
-  );
-
-  /**
-   * Handle drag end (reordering components)
-   */
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      setComponents((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-
-        const reordered = arrayMove(items, oldIndex, newIndex);
-
-        // Update order property
-        return reordered.map((item, index) => ({
-          ...item,
-          order: index,
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      setActiveComponents((items) => {
+        const oldIndex = items.findIndex((c) => c.id === active.id);
+        const newIndex = items.findIndex((c) => c.id === over.id);
+        return arrayMove(items, oldIndex, newIndex).map((c, i) => ({
+          ...c,
+          order: i,
         }));
       });
-    }
-  }, []);
+    },
+    [setActiveComponents],
+  );
 
-  /**
-   * Handle updating a component's data
-   */
+  // ──────────────────────────────
+  // COMPONENT CRUD
+  // ──────────────────────────────
+
+  const handleAddComponent = useCallback(
+    (type: ComponentType) => {
+      const newComponent = createComponent(type, activeComponents.length);
+      setActiveComponents((prev) => [...prev, newComponent]);
+      setSelectedId(newComponent.id);
+    },
+    [activeComponents.length, setActiveComponents, setSelectedId],
+  );
+
   function updateComponentData<C extends PageComponent>(
     component: C,
     newData: C["data"],
@@ -132,7 +199,7 @@ export default function StorefrontDesigner() {
 
   const handleUpdateComponent = useCallback(
     (id: string, data: PageComponent["data"]) => {
-      setComponents((prev) =>
+      setActiveComponents((prev) =>
         prev.map((comp) => {
           if (comp.id !== id) return comp;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,202 +207,238 @@ export default function StorefrontDesigner() {
         }),
       );
     },
-    [],
+    [setActiveComponents],
   );
 
-  /**
-   * Handle deleting a component
-   */
   const handleDeleteComponent = useCallback(
     (id: string) => {
-      setComponents((prev) => {
-        const filtered = prev.filter((comp) => comp.id !== id);
-        // Reindex order
-        return filtered.map((comp, index) => ({ ...comp, order: index }));
-      });
-
-      if (selectedComponentId === id) {
-        setSelectedComponentId(null);
-      }
+      setActiveComponents((prev) =>
+        prev.filter((c) => c.id !== id).map((c, i) => ({ ...c, order: i })),
+      );
+      if (selectedComponentId === id) setSelectedId(null);
     },
-    [selectedComponentId],
+    [selectedComponentId, setActiveComponents, setSelectedId],
   );
 
-  /**
-   * Handle duplicating a component
-   */
   const handleDuplicateComponent = useCallback(
     (id: string) => {
-      const componentToDuplicate = components.find((comp) => comp.id === id);
-      if (!componentToDuplicate) return;
-
+      const src = activeComponents.find((c) => c.id === id);
+      if (!src) return;
       const duplicated: PageComponent = {
-        ...componentToDuplicate,
+        ...src,
         id: uuidv4(),
-        order: components.length,
+        order: activeComponents.length,
       };
-
-      setComponents((prev) => [...prev, duplicated]);
-      setSelectedComponentId(duplicated.id);
+      setActiveComponents((prev) => [...prev, duplicated]);
+      setSelectedId(duplicated.id);
     },
-    [components],
+    [activeComponents, setActiveComponents, setSelectedId],
   );
 
-  /**
-   * Generate the complete page spec
-   */
-  const generatePageSpec = useCallback((): PageSpec => {
+  // ──────────────────────────────
+  // SPEC GENERATION
+  // ──────────────────────────────
+
+  const generateDesign = useCallback((): StorefrontDesign => {
+    const now = new Date().toISOString();
+    const makePageSpec = (pageType: PageType) => ({
+      version: "1.0.0",
+      createdAt: now,
+      updatedAt: now,
+      meta: { title: PAGE_TYPE_LABELS[pageType] },
+      components: pages[pageType],
+    });
+
     return {
       version: "1.0.0",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      meta: {
-        title: pageTitle,
-        description: pageDescription || undefined,
-      },
+      storefrontId: storeId ?? "unknown",
+      storefrontName: "Storefront",
       theme,
-      components,
+      pages: {
+        home: makePageSpec("home"),
+        products: makePageSpec("products"),
+        product_detail: makePageSpec("product_detail"),
+      },
     };
-  }, [pageTitle, pageDescription, theme, components]);
+  }, [pages, theme, storeId]);
 
-  /**
-   * Download the spec as JSON
-   */
   const handleDownloadSpec = useCallback(() => {
-    const spec = generatePageSpec();
-    const blob = new Blob([JSON.stringify(spec, null, 2)], {
+    const design = generateDesign();
+    const blob = new Blob([JSON.stringify(design, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `storefront-${storeId}-${Date.now()}.json`;
+    link.download = `storefront-${storeId ?? "design"}-${Date.now()}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [generatePageSpec, storeId]);
+  }, [generateDesign, storeId]);
 
-  /**
-   * Load a spec from JSON file
-   */
   const handleLoadSpec = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const spec: PageSpec = JSON.parse(e.target?.result as string);
-
-          // Validate basic structure
-          if (!spec.version || !spec.components || !spec.theme) {
+          const design: StorefrontDesign = JSON.parse(
+            e.target?.result as string,
+          );
+          if (!design.version || !design.pages || !design.theme) {
             throw new Error("Invalid spec format");
           }
-
-          // Load the spec
-          setPageTitle(spec.meta.title);
-          setPageDescription(spec.meta.description || "");
-          setTheme(spec.theme);
-          setComponents(spec.components);
-          setSelectedComponentId(null);
-        } catch (error) {
-          alert("Failed to load spec: " + (error as Error).message);
+          setTheme(design.theme);
+          setPages({
+            home: design.pages.home.components,
+            products: design.pages.products.components,
+            product_detail: design.pages.product_detail.components,
+          });
+          setSelectedIds({ home: null, products: null, product_detail: null });
+        } catch (err) {
+          alert("Failed to load spec: " + (err as Error).message);
         }
       };
       reader.readAsText(file);
+      event.target.value = "";
     },
     [],
   );
 
-  // ============================================================================
+  // ──────────────────────────────
   // RENDER
-  // ============================================================================
-
-  const selectedComponent = components.find(
-    (c) => c.id === selectedComponentId,
-  );
+  // ──────────────────────────────
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+      {/* ── Top Header ── */}
+      <header className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
+          <div className="h-5 w-px bg-gray-200" />
           <div>
-            <h1 className="text-xl font-bold">Storefront Designer</h1>
-            <p className="text-sm text-gray-600">Build your storefront page</p>
+            <h1 className="text-lg font-bold leading-tight">
+              Storefront Designer
+            </h1>
+            <p className="text-xs text-gray-500">
+              Theme is shared across all pages
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded p-1">
+          {/* Desktop / Mobile toggle */}
+          <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
             <Button
               variant={viewMode === "desktop" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("desktop")}
+              className="h-7 w-7 p-0"
             >
-              <Monitor className="h-4 w-4" />
+              <Monitor className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant={viewMode === "mobile" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("mobile")}
+              className="h-7 w-7 p-0"
             >
-              <Smartphone className="h-4 w-4" />
+              <Smartphone className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          {/* Theme Editor */}
           <Button
-            variant="outline"
-            onClick={() => setShowThemeEditor(!showThemeEditor)}
+            variant={showThemeEditor ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setShowThemeEditor((v) => !v);
+              setSelectedId(null);
+            }}
           >
-            <Settings className="h-4 w-4 mr-2" />
+            <Settings className="h-4 w-4 mr-1.5" />
             Theme
           </Button>
 
-          {/* Preview */}
-          <Button variant="outline" onClick={() => setShowPreview(true)}>
-            <Eye className="h-4 w-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview(true)}
+          >
+            <Eye className="h-4 w-4 mr-1.5" />
             Preview
           </Button>
 
-          {/* Load Spec */}
-          <label>
+          <label className="cursor-pointer">
             <input
               type="file"
               accept=".json"
               onChange={handleLoadSpec}
               className="hidden"
             />
-            <Button variant="outline" asChild>
-              <span className="cursor-pointer">
-                <Plus className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" asChild>
+              <span>
+                <Upload className="h-4 w-4 mr-1.5" />
                 Load
               </span>
             </Button>
           </label>
 
-          {/* Download Spec */}
-          <Button onClick={handleDownloadSpec}>
-            <Download className="h-4 w-4 mr-2" />
+          <Button size="sm" onClick={handleDownloadSpec}>
+            <Download className="h-4 w-4 mr-1.5" />
             Download Spec
           </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Component Sidebar */}
-        <ComponentSidebar onAddComponent={handleAddComponent} />
+      {/* ── Page Switcher Tabs ── */}
+      <div className="bg-white border-b px-4 shrink-0">
+        <nav className="flex gap-1" aria-label="Page tabs">
+          {PAGE_TABS.map((tab) => {
+            const isActive = activePage === tab.type;
+            const count = pages[tab.type].length;
+            return (
+              <button
+                key={tab.type}
+                onClick={() => handlePageSwitch(tab.type)}
+                className={[
+                  "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  isActive
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                ].join(" ")}
+              >
+                {tab.icon}
+                {tab.label}
+                <span
+                  className={[
+                    "inline-flex items-center justify-center min-w-4.5 h-4.5 px-1 rounded-full text-xs font-semibold",
+                    isActive
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-500",
+                  ].join(" ")}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-        {/* Canvas Area */}
+      {/* ── Main Area ── */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar — only shows components allowed for the active page */}
+        <ComponentSidebar
+          activePage={activePage}
+          onAddComponent={handleAddComponent}
+        />
+
+        {/* Canvas */}
         <div className="flex-1 overflow-auto p-6">
           <DndContext
             sensors={sensors}
@@ -343,58 +446,60 @@ export default function StorefrontDesigner() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={components.map((c) => c.id)}
+              items={activeComponents.map((c) => c.id)}
               strategy={verticalListSortingStrategy}
             >
               <CanvasArea
-                components={components}
+                components={activeComponents}
                 selectedComponentId={selectedComponentId}
-                onSelectComponent={setSelectedComponentId}
+                onSelectComponent={setSelectedId}
                 onDeleteComponent={handleDeleteComponent}
                 onDuplicateComponent={handleDuplicateComponent}
                 viewMode={viewMode}
                 theme={theme}
+                activePage={activePage}
               />
             </SortableContext>
           </DndContext>
         </div>
 
-        {/* Properties Panel */}
-        {selectedComponent ? (
-          <div className="w-80 bg-white border-l overflow-auto">
+        {/* Right panel */}
+        <div className="w-80 bg-white border-l overflow-auto shrink-0">
+          {selectedComponent ? (
             <ComponentEditor
               component={selectedComponent}
               onUpdate={(data) =>
                 handleUpdateComponent(selectedComponent.id, data)
               }
-              onClose={() => setSelectedComponentId(null)}
+              onClose={() => setSelectedId(null)}
             />
-          </div>
-        ) : showThemeEditor ? (
-          <div className="w-80 bg-white border-l overflow-auto">
+          ) : showThemeEditor ? (
             <ThemeEditor
               theme={theme}
               onUpdate={setTheme}
               onClose={() => setShowThemeEditor(false)}
             />
-          </div>
-        ) : (
-          <div className="w-80 bg-white border-l flex items-center justify-center p-8">
-            <div className="text-center text-gray-500">
-              <Settings className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">
-                Select a component to edit its properties
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-400">
+              <Settings className="h-10 w-10 mb-3 text-gray-200" />
+              <p className="text-sm font-medium text-gray-500">
+                Select a component to edit
+              </p>
+              <p className="text-xs mt-1">
+                or click Theme to customise colours &amp; fonts
               </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Preview Dialog */}
       <PreviewDialog
         open={showPreview}
         onClose={() => setShowPreview(false)}
-        spec={generatePageSpec()}
+        design={generateDesign()}
+        activePage={activePage}
+        onPageChange={setActivePage}
       />
     </div>
   );

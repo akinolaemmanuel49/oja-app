@@ -1,8 +1,8 @@
 /**
- * Component Registry
+ * Storefront Component Registry
  *
- * Defines all available components for the storefront builder,
- * including their default configurations and metadata.
+ * Single source of truth for all available components — their defaults,
+ * labels, icons, and which pages they are allowed on.
  */
 
 import { v4 as uuidv4 } from "uuid";
@@ -10,19 +10,24 @@ import type {
   ComponentDefinition,
   ComponentType,
   PageComponent,
-} from "../types/storefront.design";
+  PageType,
+} from "@/types/storefront.design";
 
 // ============================================================================
-// COMPONENT DEFINITIONS
+// REGISTRY
 // ============================================================================
 
 export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
+  // ──────────────────────────────
+  // SHARED (all pages)
+  // ──────────────────────────────
+
   hero: {
     type: "hero",
     label: "Hero Section",
     icon: "Sparkles",
-    description:
-      "Large header section with title, subtitle, and optional background image",
+    description: "Large header with title, subtitle, and optional CTA button",
+    allowedPages: ["home", "products", "product_detail"],
     defaultData: {
       title: "Welcome to Our Store",
       subtitle: "Discover amazing products",
@@ -30,11 +35,7 @@ export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
       textAlign: "center",
       textColor: "#ffffff",
       backgroundColor: "#1e293b",
-      overlay: {
-        enabled: true,
-        color: "#000000",
-        opacity: 40,
-      },
+      overlay: { enabled: true, color: "#000000", opacity: 40 },
       cta: {
         enabled: true,
         text: "Shop Now",
@@ -48,7 +49,8 @@ export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
     type: "banner",
     label: "Image Banner",
     icon: "Image",
-    description: "Rotating image carousel/banner",
+    description: "Rotating image carousel / promotional banner",
+    allowedPages: ["home", "products", "product_detail"],
     defaultData: {
       images: [],
       autoPlay: true,
@@ -64,6 +66,7 @@ export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
     label: "Text Block",
     icon: "Type",
     description: "Rich text content block",
+    allowedPages: ["home", "products", "product_detail"],
     defaultData: {
       content: "<p>Add your content here...</p>",
       maxWidth: "medium",
@@ -72,13 +75,42 @@ export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  image_gallery: {
+    type: "image_gallery",
+    label: "Image Gallery",
+    icon: "Images",
+    description: "Grid or masonry layout of images",
+    allowedPages: ["home", "products", "product_detail"],
+    defaultData: {
+      images: [],
+      layout: "grid",
+      columns: 3,
+      gap: "medium",
+    },
+  },
+
+  spacer: {
+    type: "spacer",
+    label: "Spacer",
+    icon: "Space",
+    description: "Vertical spacing between sections",
+    allowedPages: ["home", "products", "product_detail"],
+    defaultData: { height: "medium" },
+  },
+
+  // ──────────────────────────────
+  // HOME-ONLY
+  // ──────────────────────────────
+
   product_grid: {
     type: "product_grid",
     label: "Product Grid",
     icon: "Grid3x3",
-    description: "Grid layout of products",
+    description:
+      "Grid layout of products with configurable columns and sorting",
+    allowedPages: ["home", "products"],
     defaultData: {
-      title: "Featured Products",
+      title: "Products",
       columns: 4,
       limit: 12,
       sortOrder: "newest_first",
@@ -95,6 +127,7 @@ export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
     label: "Product Carousel",
     icon: "Repeat",
     description: "Horizontal scrolling product carousel",
+    allowedPages: ["home", "products"],
     defaultData: {
       title: "New Arrivals",
       limit: 10,
@@ -107,65 +140,147 @@ export const COMPONENT_REGISTRY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
-  image_gallery: {
-    type: "image_gallery",
-    label: "Image Gallery",
-    icon: "Images",
-    description: "Grid or masonry layout of images",
+  // ──────────────────────────────
+  // PRODUCTS PAGE
+  // ──────────────────────────────
+
+  products_header: {
+    type: "products_header",
+    label: "Products Header",
+    icon: "ListFilter",
+    description: "Page title, subtitle, and default sort order for the listing",
+    allowedPages: ["products"],
     defaultData: {
-      images: [],
-      layout: "grid",
-      columns: 3,
-      gap: "medium",
+      title: "All Products",
+      subtitle: "",
+      defaultSortOrder: "newest_first",
+      showResultCount: true,
+      showSortDropdown: true,
     },
   },
 
-  spacer: {
-    type: "spacer",
-    label: "Spacer",
-    icon: "Space",
-    description: "Vertical spacing between sections",
+  products_filter_bar: {
+    type: "products_filter_bar",
+    label: "Filter Bar",
+    icon: "SlidersHorizontal",
+    description: "Price and type filters above the product listing",
+    allowedPages: ["products"],
     defaultData: {
-      height: "medium",
+      showPriceFilter: true,
+      showTypeFilter: true,
+      filterPosition: "top",
+      sticky: false,
+    },
+  },
+
+  // ──────────────────────────────
+  // PRODUCT DETAIL PAGE
+  // ──────────────────────────────
+
+  product_images: {
+    type: "product_images",
+    label: "Product Images",
+    icon: "ImagePlay",
+    description: "Main image display with thumbnail strip",
+    allowedPages: ["product_detail"],
+    defaultData: {
+      layout: "carousel",
+      mainImageAspect: "square",
+      showThumbnails: true,
+      thumbnailPosition: "bottom",
+      zoomOnHover: true,
+    },
+  },
+
+  product_info: {
+    type: "product_info",
+    label: "Product Info",
+    icon: "ShoppingBag",
+    description: "Name, price, variants, quantity, and add-to-cart block",
+    allowedPages: ["product_detail"],
+    defaultData: {
+      showSku: true,
+      showStockStatus: true,
+      showVariantSelector: true,
+      variantSelectorStyle: "buttons",
+      showQuantitySelector: true,
+      addToCartButtonText: "Add to Cart",
+      showShareButtons: false,
+      pricePosition: "below_name",
+    },
+  },
+
+  product_tabs: {
+    type: "product_tabs",
+    label: "Product Tabs",
+    icon: "BookOpen",
+    description: "Tabbed sections for description, specifications, etc.",
+    allowedPages: ["product_detail"],
+    defaultData: {
+      tabs: [
+        {
+          id: "tab-description",
+          label: "Description",
+          content: "<p>Product description goes here...</p>",
+          enabled: true,
+        },
+        {
+          id: "tab-specs",
+          label: "Specifications",
+          content: "<p>Product specifications...</p>",
+          enabled: true,
+        },
+      ],
+      defaultTab: "tab-description",
+      tabStyle: "underline",
+    },
+  },
+
+  related_products: {
+    type: "related_products",
+    label: "Related Products",
+    icon: "LayoutGrid",
+    description: '"You may also like" product grid at bottom of detail page',
+    allowedPages: ["product_detail"],
+    defaultData: {
+      title: "You May Also Like",
+      limit: 4,
+      sortOrder: "newest_first",
+      columns: 4,
+      cardStyle: "shadow",
     },
   },
 };
 
 // ============================================================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================================================
 
 /**
- * Create a new component with default data
+ * Create a new component instance with default data and a fresh UUID.
  */
 export function createComponent(
   type: ComponentType,
   order: number,
 ): PageComponent {
   const definition = COMPONENT_REGISTRY[type];
-
   return {
     id: uuidv4(),
     type,
     order,
-    data: { ...definition.defaultData },
+    // Spread so each instance gets its own copy — no shared references
+    data: structuredClone(definition.defaultData),
   } as PageComponent;
 }
 
 /**
- * Get component definition by type
+ * Return only the components allowed for a given page type.
+ * Used by the sidebar to filter what it shows.
  */
-export function getComponentDefinition(
-  type: ComponentType,
-): ComponentDefinition {
-  return COMPONENT_REGISTRY[type];
-}
-
-/**
- * Get all component types for the sidebar
- */
-export function getAvailableComponents(): ComponentDefinition[] {
-  return Object.values(COMPONENT_REGISTRY);
+export function getComponentsForPage(page: PageType): ComponentDefinition[] {
+  return Object.values(COMPONENT_REGISTRY).filter((def) =>
+    def.allowedPages.includes(page),
+  );
 }
 
 // ============================================================================
@@ -189,37 +304,24 @@ export const DEFAULT_THEME = {
 };
 
 // ============================================================================
-// STARTER TEMPLATES
+// DEFAULT PAGE COMPONENTS
 // ============================================================================
 
 /**
- * Pre-built page templates for quick start
+ * Pre-seeded components for each page so the canvas is never blank
+ * when the designer first opens.
  */
-export const PAGE_TEMPLATES = {
-  blank: {
-    name: "Blank Page",
-    description: "Start from scratch",
-    components: [],
-  },
-
-  ecommerce: {
-    name: "E-commerce Home",
-    description: "Hero + Product Grid + Text",
-    components: [
-      createComponent("hero", 0),
-      createComponent("product_grid", 1),
-      createComponent("spacer", 2),
-      createComponent("text", 3),
-    ],
-  },
-
-  gallery: {
-    name: "Gallery Page",
-    description: "Hero + Image Gallery",
-    components: [
-      createComponent("hero", 0),
-      createComponent("spacer", 1),
-      createComponent("image_gallery", 2),
-    ],
-  },
+export const DEFAULT_PAGE_COMPONENTS: Record<PageType, PageComponent[]> = {
+  home: [createComponent("hero", 0), createComponent("product_grid", 1)],
+  products: [
+    createComponent("products_header", 0),
+    createComponent("products_filter_bar", 1),
+    createComponent("product_grid", 2),
+  ],
+  product_detail: [
+    createComponent("product_images", 0),
+    createComponent("product_info", 1),
+    createComponent("product_tabs", 2),
+    createComponent("related_products", 3),
+  ],
 };
