@@ -31,6 +31,8 @@ export default function ErrorPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const prevPath = (location.state as { from?: string })?.from ?? null;
+
   // Extract status from pathname: /401, /403, /404, /500
   const pathMatch = location.pathname.match(/^\/(\d{3})$/);
   const status = pathMatch ? parseInt(pathMatch[1], 10) : 404;
@@ -56,6 +58,7 @@ export default function ErrorPage() {
           {error.title}
         </h1>
 
+        {status === 404 && <p className="text-gray-600 mb-6">{prevPath}</p>}
         <p className="text-gray-600 mb-6">{error.message}</p>
 
         <div className="flex justify-center gap-3">

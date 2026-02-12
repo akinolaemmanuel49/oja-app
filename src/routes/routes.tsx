@@ -63,7 +63,13 @@ export default function AppRoutes() {
           {/* Catch all */}
           <Route
             path="*"
-            element={<Navigate to={AppHref.notFoundRoute} replace />}
+            element={
+              <Navigate
+                to={AppHref.notFoundRoute}
+                replace
+                state={{ from: location.pathname }}
+              />
+            }
           />
         </Routes>
       </Suspense>

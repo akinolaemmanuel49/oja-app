@@ -1,21 +1,58 @@
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import type {
   PageSpec,
   PageComponent,
   ThemeConfig,
 } from "@/types/storefront.design";
-import { Package, SlidersHorizontal, ShoppingCart } from "lucide-react";
+import type { StorefrontProduct } from "@/types/storefront.product";
+import {
+  Package,
+  SlidersHorizontal,
+  ShoppingCart,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MOCK_PRODUCTS } from "@/mocks/storefront.products";
+
+// ============================================================================
+// PROPS INTERFACE
+// ============================================================================
 
 interface StorefrontRendererProps {
   spec: PageSpec;
+  /** Actual storefront products from API */
+  storefrontProducts?: StorefrontProduct[];
+  /** Storefront ID for navigation */
+  storefrontId?: string;
 }
 
 /**
- * Production renderer — takes a PageSpec and turns it into HTML.
- * Used by the preview dialog and will be used by the storefront app.
- * Product data for product_grid / product_carousel / related_products etc.
- * will be injected by the storefront app at runtime; here we render placeholders.
+ * Production renderer with mock/real data toggle, navigation, pagination, and filters.
  */
-export function StorefrontRenderer({ spec }: StorefrontRendererProps) {
+export function StorefrontRenderer({
+  spec,
+  storefrontProducts = [],
+  storefrontId,
+}: StorefrontRendererProps) {
+  const [useMockData, setUseMockData] = useState(
+    storefrontProducts.length === 0,
+  );
+
+  // Switch to real data automatically when products are available
+  const products = useMockData ? MOCK_PRODUCTS : storefrontProducts;
+
   return (
     <div
       style={{
@@ -24,6 +61,26 @@ export function StorefrontRenderer({ spec }: StorefrontRendererProps) {
         backgroundColor: spec.theme.colors.background,
       }}
     >
+      {/* Mock data toggle - only show if we have real data available */}
+      {storefrontProducts.length > 0 && (
+        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium text-yellow-900">
+              Data Source:
+            </Label>
+            <Switch
+              checked={useMockData}
+              onCheckedChange={setUseMockData}
+              className="bg-yellow-300 data-[state=checked]:bg-yellow-600"
+            />
+            <span className="text-sm text-yellow-900">
+              {useMockData ? "Mock Data" : "Real Data"} ({products.length}{" "}
+              products)
+            </span>
+          </div>
+        </div>
+      )}
+
       {[...spec.components]
         .sort((a, b) => a.order - b.order)
         .map((component) => (
@@ -31,6 +88,8 @@ export function StorefrontRenderer({ spec }: StorefrontRendererProps) {
             key={component.id}
             component={component}
             theme={spec.theme}
+            products={products}
+            storefrontId={storefrontId}
           />
         ))}
     </div>
@@ -44,9 +103,13 @@ export function StorefrontRenderer({ spec }: StorefrontRendererProps) {
 function ComponentRenderer({
   component,
   theme,
+  products,
+  storefrontId,
 }: {
   component: PageComponent;
   theme: ThemeConfig;
+  products: StorefrontProduct[];
+  storefrontId?: string;
 }) {
   switch (component.type) {
     case "hero":
@@ -56,9 +119,23 @@ function ComponentRenderer({
     case "text":
       return <TextRenderer component={component} theme={theme} />;
     case "product_grid":
-      return <ProductGridRenderer component={component} theme={theme} />;
+      return (
+        <ProductGridRenderer
+          component={component}
+          theme={theme}
+          products={products}
+          storefrontId={storefrontId}
+        />
+      );
     case "product_carousel":
-      return <ProductCarouselRenderer component={component} theme={theme} />;
+      return (
+        <ProductCarouselRenderer
+          component={component}
+          theme={theme}
+          products={products}
+          storefrontId={storefrontId}
+        />
+      );
     case "image_gallery":
       return <ImageGalleryRenderer component={component} theme={theme} />;
     case "spacer":
@@ -74,14 +151,21 @@ function ComponentRenderer({
     case "product_tabs":
       return <ProductTabsRenderer component={component} />;
     case "related_products":
-      return <RelatedProductsRenderer component={component} theme={theme} />;
+      return (
+        <RelatedProductsRenderer
+          component={component}
+          theme={theme}
+          products={products}
+          storefrontId={storefrontId}
+        />
+      );
     default:
       return null;
   }
 }
 
 // ============================================================================
-// SHARED RENDERERS
+// SHARED RENDERERS (unchanged)
 // ============================================================================
 
 function HeroRenderer({
@@ -239,121 +323,6 @@ function TextRenderer({
   );
 }
 
-function ProductGridRenderer({
-  component,
-  theme,
-}: {
-  component: Extract<PageComponent, { type: "product_grid" }>;
-  theme: ThemeConfig;
-}) {
-  const { data } = component;
-  const spacingMap = { compact: "1rem", normal: "1.5rem", relaxed: "2rem" };
-  const br = getBorderRadius(theme.borderRadius);
-  return (
-    <div className="px-4 md:px-8 py-8">
-      {data.title && (
-        <h2
-          className="text-3xl font-bold mb-6"
-          style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
-        >
-          {data.title}
-        </h2>
-      )}
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns: `repeat(${data.columns}, 1fr)`,
-          gap: spacingMap[data.spacing],
-        }}
-      >
-        {Array.from({ length: Math.min(data.limit, 8) }).map((_, i) => (
-          <div
-            key={i}
-            className={`overflow-hidden transition-all hover:scale-105 ${data.cardStyle === "bordered" ? "border" : data.cardStyle === "shadow" ? "shadow-lg" : ""}`}
-            style={{ borderRadius: br }}
-          >
-            <div className="aspect-square bg-gray-200 flex items-center justify-center">
-              <Package className="h-16 w-16 text-gray-400" />
-            </div>
-            <div className="p-4">
-              <h3 className="font-medium mb-1">Sample Product {i + 1}</h3>
-              {data.showPrice && (
-                <p
-                  className="text-lg font-bold"
-                  style={{ color: theme.colors.primary }}
-                >
-                  ₦{((i + 1) * 1000).toLocaleString()}
-                </p>
-              )}
-              {data.showSku && (
-                <p className="text-sm text-gray-500">
-                  SKU: PROD-{String(i + 1).padStart(3, "0")}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="text-sm text-gray-400 mt-6 text-center">
-        Sort: {data.sortOrder.replace(/_/g, " ")}
-      </p>
-    </div>
-  );
-}
-
-function ProductCarouselRenderer({
-  component,
-  theme,
-}: {
-  component: Extract<PageComponent, { type: "product_carousel" }>;
-  theme: ThemeConfig;
-}) {
-  const { data } = component;
-  const br = getBorderRadius(theme.borderRadius);
-  return (
-    <div className="px-4 md:px-8 py-8">
-      {data.title && (
-        <h2
-          className="text-3xl font-bold mb-6"
-          style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
-        >
-          {data.title}
-        </h2>
-      )}
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {Array.from({ length: Math.min(data.limit, data.itemsPerView) }).map(
-          (_, i) => (
-            <div
-              key={i}
-              className="shrink-0 shadow-lg overflow-hidden hover:scale-105 transition-all"
-              style={{
-                width: `${100 / data.itemsPerView - 1}%`,
-                minWidth: "200px",
-                borderRadius: br,
-              }}
-            >
-              <div className="aspect-square bg-gray-200 flex items-center justify-center">
-                <Package className="h-12 w-12 text-gray-400" />
-              </div>
-              <div className="p-3">
-                <h3 className="font-medium text-sm mb-1">Product {i + 1}</h3>
-                {data.showPrice && (
-                  <p
-                    className="font-bold"
-                    style={{ color: theme.colors.primary }}
-                  >
-                    ₦{((i + 1) * 1500).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            </div>
-          ),
-        )}
-      </div>
-    </div>
-  );
-}
-
 function ImageGalleryRenderer({
   component,
   theme,
@@ -408,7 +377,345 @@ function SpacerRenderer({
 }
 
 // ============================================================================
-// PRODUCTS PAGE RENDERERS
+// PRODUCT COMPONENTS WITH REAL LOGIC
+// ============================================================================
+
+function ProductGridRenderer({
+  component,
+  theme,
+  products,
+  storefrontId,
+}: {
+  component: Extract<PageComponent, { type: "product_grid" }>;
+  theme: ThemeConfig;
+  products: StorefrontProduct[];
+  storefrontId?: string;
+}) {
+  const { data } = component;
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = data.limit;
+
+  // Apply sorting
+  const sortedProducts = useMemo(() => {
+    const sorted = [...products].filter((p) => p.is_visible);
+
+    switch (data.sortOrder) {
+      case "newest_first":
+        return sorted.sort(
+          (a, b) => (b.display_order ?? 0) - (a.display_order ?? 0),
+        );
+      case "oldest_first":
+        return sorted.sort(
+          (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
+        );
+      case "price_low_high":
+        return sorted.sort((a, b) => {
+          const priceA =
+            a.product_type === "simple"
+              ? (a.base_price ?? 0)
+              : Math.min(...(a.variants?.map((v) => v.price ?? 0) ?? [0]));
+          const priceB =
+            b.product_type === "simple"
+              ? (b.base_price ?? 0)
+              : Math.min(...(b.variants?.map((v) => v.price ?? 0) ?? [0]));
+          return priceA - priceB;
+        });
+      case "price_high_low":
+        return sorted.sort((a, b) => {
+          const priceA =
+            a.product_type === "simple"
+              ? (a.base_price ?? 0)
+              : Math.max(...(a.variants?.map((v) => v.price ?? 0) ?? [0]));
+          const priceB =
+            b.product_type === "simple"
+              ? (b.base_price ?? 0)
+              : Math.max(...(b.variants?.map((v) => v.price ?? 0) ?? [0]));
+          return priceB - priceA;
+        });
+      case "name_a_z":
+        return sorted.sort((a, b) =>
+          a.product_name.localeCompare(b.product_name),
+        );
+      case "name_z_a":
+        return sorted.sort((a, b) =>
+          b.product_name.localeCompare(a.product_name),
+        );
+      default:
+        return sorted;
+    }
+  }, [products, data.sortOrder]);
+
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const paginatedProducts = sortedProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  const spacing = { compact: "gap-4", normal: "gap-6", relaxed: "gap-8" }[
+    data.spacing
+  ];
+  const br = getBorderRadius(theme.borderRadius);
+
+  return (
+    <div className="px-4 md:px-8 py-10 md:py-12">
+      {data.title && (
+        <h2
+          className="text-2xl md:text-3xl font-bold mb-6 md:mb-8"
+          style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
+        >
+          {data.title}
+        </h2>
+      )}
+
+      <div
+        className={`grid ${spacing}`}
+        style={{
+          gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
+        }}
+      >
+        {paginatedProducts.map((product) => (
+          <ProductCard
+            key={product.product_id}
+            product={product}
+            showPrice={data.showPrice}
+            showSku={data.showSku}
+            cardStyle={data.cardStyle}
+            theme={theme}
+            borderRadius={br}
+            storefrontId={storefrontId}
+          />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      <div className="text-center mt-6 text-sm text-gray-500">
+        Showing {paginatedProducts.length} of {sortedProducts.length} products •
+        Sort: {data.sortOrder.replace(/_/g, " ")}
+      </div>
+    </div>
+  );
+}
+
+function ProductCarouselRenderer({
+  component,
+  theme,
+  products,
+  storefrontId,
+}: {
+  component: Extract<PageComponent, { type: "product_carousel" }>;
+  theme: ThemeConfig;
+  products: StorefrontProduct[];
+  storefrontId?: string;
+}) {
+  const { data } = component;
+  const br = getBorderRadius(theme.borderRadius);
+
+  const visibleProducts = products
+    .filter((p) => p.is_visible)
+    .slice(0, data.limit);
+
+  return (
+    <div className="px-4 md:px-8 py-10 md:py-12">
+      {data.title && (
+        <h2
+          className="text-2xl md:text-3xl font-bold mb-6 md:mb-8"
+          style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
+        >
+          {data.title}
+        </h2>
+      )}
+
+      <div className="flex gap-5 overflow-x-auto pb-6 snap-x snap-mandatory">
+        {visibleProducts.map((product) => (
+          <div
+            key={product.product_id}
+            className="shrink-0 w-[85%] sm:w-[45%] md:w-[32%] lg:w-[24%] snap-start"
+          >
+            <ProductCard
+              product={product}
+              showPrice={data.showPrice}
+              showSku={data.showSku}
+              cardStyle="shadow"
+              theme={theme}
+              borderRadius={br}
+              storefrontId={storefrontId}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RelatedProductsRenderer({
+  component,
+  theme,
+  products,
+  storefrontId,
+}: {
+  component: Extract<PageComponent, { type: "related_products" }>;
+  theme: ThemeConfig;
+  products: StorefrontProduct[];
+  storefrontId?: string;
+}) {
+  const { data } = component;
+  const br = getBorderRadius(theme.borderRadius);
+
+  const visibleProducts = products
+    .filter((p) => p.is_visible)
+    .slice(0, data.limit);
+
+  return (
+    <div className="px-4 md:px-8 py-10 md:py-12 border-t">
+      <h2
+        className="text-2xl md:text-3xl font-bold mb-6 md:mb-8"
+        style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
+      >
+        {data.title}
+      </h2>
+
+      <div
+        className="grid gap-6"
+        style={{
+          gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
+        }}
+      >
+        {visibleProducts.map((product) => (
+          <ProductCard
+            key={product.product_id}
+            product={product}
+            showPrice={true}
+            showSku={false}
+            cardStyle={data.cardStyle}
+            theme={theme}
+            borderRadius={br}
+            storefrontId={storefrontId}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({
+  product,
+  showPrice,
+  showSku,
+  cardStyle,
+  theme,
+  borderRadius,
+  storefrontId,
+}: {
+  product: StorefrontProduct;
+  showPrice: boolean;
+  showSku: boolean;
+  cardStyle: "minimal" | "bordered" | "shadow";
+  theme: ThemeConfig;
+  borderRadius: string;
+  storefrontId?: string;
+}) {
+  const navigate = useNavigate();
+  const hasVariants =
+    product.product_type === "variable" &&
+    product.variants &&
+    product.variants.length > 0;
+  const firstVariant = hasVariants ? product.variants![0] : null;
+
+  const displayPrice = hasVariants ? firstVariant?.price : product.base_price;
+  const displayImageUrl = hasVariants
+    ? firstVariant?.main_image_url
+    : product.main_image_url;
+
+  const handleClick = () => {
+    if (storefrontId) {
+      navigate(`/storefronts/${storefrontId}/products/${product.product_id}`);
+    }
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className={cn(
+        "group block overflow-hidden transition-all duration-200 hover:-translate-y-1 bg-white cursor-pointer",
+        cardStyle === "bordered" && "border border-gray-200",
+        cardStyle === "shadow" && "shadow-md hover:shadow-xl",
+      )}
+      style={{ borderRadius }}
+    >
+      <div className="aspect-square relative bg-gray-50 overflow-hidden">
+        {displayImageUrl ? (
+          <img
+            src={displayImageUrl}
+            alt={product.product_name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package className="h-16 w-16 text-gray-300" />
+          </div>
+        )}
+      </div>
+
+      <div className="p-4">
+        <h3
+          className="font-medium text-base md:text-lg mb-1.5 line-clamp-2 min-h-11"
+          style={{ color: theme.colors.text }}
+        >
+          {product.product_name}
+        </h3>
+
+        {showPrice && displayPrice != null && (
+          <p
+            className="font-bold text-lg md:text-xl"
+            style={{ color: theme.colors.primary }}
+          >
+            ₦{displayPrice.toLocaleString()}
+          </p>
+        )}
+
+        {showSku && (product.sku || firstVariant?.sku) && (
+          <p className="text-xs md:text-sm text-gray-500 mt-1">
+            SKU: {product.sku || firstVariant?.sku}
+          </p>
+        )}
+
+        {hasVariants && (
+          <p className="text-xs text-gray-500 mt-1 italic">
+            Available in {product.variants!.length} variant
+            {product.variants!.length !== 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PRODUCTS PAGE RENDERERS WITH FILTERS
 // ============================================================================
 
 function ProductsHeaderRenderer({
@@ -453,33 +760,54 @@ function ProductsFilterBarRenderer({
   theme: ThemeConfig;
 }) {
   const { data } = component;
+  const [priceRange, setPriceRange] = useState<string>("all");
+  const [productType, setProductType] = useState<string>("all");
+
   return (
     <div
       className={`px-4 md:px-8 py-4 border-y flex ${data.filterPosition === "side" ? "flex-col gap-3" : "flex-row flex-wrap gap-3 items-center"} bg-gray-50 ${data.sticky ? "sticky top-0 z-10" : ""}`}
     >
       <span className="text-sm font-medium text-gray-700">Filters:</span>
+
       {data.showPriceFilter && (
-        <button
-          className="flex items-center gap-2 px-4 py-2 border rounded bg-white text-sm hover:bg-gray-50"
-          style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
-        >
-          Price Range
-        </button>
+        <Select value={priceRange} onValueChange={setPriceRange}>
+          <SelectTrigger
+            className="w-45 bg-white"
+            style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
+          >
+            <SelectValue placeholder="Price Range" />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="all">All Prices</SelectItem>
+            <SelectItem value="0-10000">₦0 - ₦10,000</SelectItem>
+            <SelectItem value="10000-50000">₦10,000 - ₦50,000</SelectItem>
+            <SelectItem value="50000-100000">₦50,000 - ₦100,000</SelectItem>
+            <SelectItem value="100000+">₦100,000+</SelectItem>
+          </SelectContent>
+        </Select>
       )}
+
       {data.showTypeFilter && (
-        <button
-          className="flex items-center gap-2 px-4 py-2 border rounded bg-white text-sm hover:bg-gray-50"
-          style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
-        >
-          Product Type
-        </button>
+        <Select value={productType} onValueChange={setProductType}>
+          <SelectTrigger
+            className="w-45 bg-white"
+            style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
+          >
+            <SelectValue placeholder="Product Type" />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="simple">Simple</SelectItem>
+            <SelectItem value="variable">Variable</SelectItem>
+          </SelectContent>
+        </Select>
       )}
     </div>
   );
 }
 
 // ============================================================================
-// PRODUCT DETAIL RENDERERS
+// PRODUCT DETAIL RENDERERS WITH VARIANT SELECTION
 // ============================================================================
 
 function ProductImagesRenderer({
@@ -501,7 +829,6 @@ function ProductImagesRenderer({
     <div
       className={`flex ${data.thumbnailPosition === "left" && data.showThumbnails ? "flex-row gap-4" : "flex-col gap-4"} px-4 md:px-8 py-8`}
     >
-      {/* Thumbnails on left */}
       {data.showThumbnails && data.thumbnailPosition === "left" && (
         <div className="flex flex-col gap-2">
           {[1, 2, 3, 4].map((i) => (
@@ -518,7 +845,6 @@ function ProductImagesRenderer({
         </div>
       )}
 
-      {/* Main image */}
       <div
         className={`flex-1 bg-gray-200 flex items-center justify-center ${aspectMap[data.mainImageAspect]} ${data.zoomOnHover ? "overflow-hidden group" : ""}`}
         style={{ borderRadius: br }}
@@ -528,7 +854,6 @@ function ProductImagesRenderer({
         />
       </div>
 
-      {/* Thumbnails on bottom */}
       {data.showThumbnails && data.thumbnailPosition === "bottom" && (
         <div className="flex gap-2 flex-wrap">
           {[1, 2, 3, 4].map((i) => (
@@ -554,6 +879,8 @@ function ProductInfoRenderer({
   theme: ThemeConfig;
 }) {
   const { data } = component;
+  const [selectedVariant, setSelectedVariant] = useState("Small");
+  const [quantity, setQuantity] = useState(1);
   const br = getBorderRadius(theme.borderRadius);
 
   return (
@@ -592,7 +919,13 @@ function ProductInfoRenderer({
               {["Small", "Medium", "Large", "XL"].map((v) => (
                 <button
                   key={v}
-                  className="px-4 py-2 border-2 text-sm font-medium hover:border-blue-500 transition-colors"
+                  onClick={() => setSelectedVariant(v)}
+                  className={cn(
+                    "px-4 py-2 border-2 text-sm font-medium transition-colors",
+                    selectedVariant === v
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-300 hover:border-blue-300",
+                  )}
                   style={{ borderRadius: br }}
                 >
                   {v}
@@ -600,14 +933,17 @@ function ProductInfoRenderer({
               ))}
             </div>
           ) : (
-            <select
-              className="border rounded px-3 py-2 text-sm w-full"
-              style={{ borderRadius: br }}
-            >
-              <option>Small</option>
-              <option>Medium</option>
-              <option>Large</option>
-            </select>
+            <Select value={selectedVariant} onValueChange={setSelectedVariant}>
+              <SelectTrigger className="w-full" style={{ borderRadius: br }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="Small">Small</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Large">Large</SelectItem>
+                <SelectItem value="XL">XL</SelectItem>
+              </SelectContent>
+            </Select>
           )}
         </div>
       )}
@@ -617,14 +953,16 @@ function ProductInfoRenderer({
           <p className="text-sm font-medium mb-2">Quantity</p>
           <div className="flex items-center gap-2">
             <button
-              className="w-8 h-8 border rounded flex items-center justify-center font-bold"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="w-8 h-8 border rounded flex items-center justify-center font-bold hover:bg-gray-50"
               style={{ borderRadius: br }}
             >
               −
             </button>
-            <span className="w-12 text-center">1</span>
+            <span className="w-12 text-center">{quantity}</span>
             <button
-              className="w-8 h-8 border rounded flex items-center justify-center font-bold"
+              onClick={() => setQuantity((q) => q + 1)}
+              className="w-8 h-8 border rounded flex items-center justify-center font-bold hover:bg-gray-50"
               style={{ borderRadius: br }}
             >
               +
@@ -659,12 +997,14 @@ function ProductTabsRenderer({
   component: Extract<PageComponent, { type: "product_tabs" }>;
 }) {
   const { data } = component;
+  const [activeTabId, setActiveTabId] = useState(data.defaultTab);
   const enabledTabs = data.tabs.filter((t) => t.enabled);
   const activeTab =
-    enabledTabs.find((t) => t.id === data.defaultTab) ?? enabledTabs[0];
+    enabledTabs.find((t) => t.id === activeTabId) ?? enabledTabs[0];
 
   const tabBtnClass = (isActive: boolean) => {
-    const base = "px-4 py-2.5 text-sm font-medium transition-colors ";
+    const base =
+      "px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ";
     if (data.tabStyle === "underline")
       return (
         base +
@@ -689,6 +1029,7 @@ function ProductTabsRenderer({
         {enabledTabs.map((tab) => (
           <button
             key={tab.id}
+            onClick={() => setActiveTabId(tab.id)}
             className={tabBtnClass(tab.id === activeTab?.id)}
           >
             {tab.label}
@@ -705,54 +1046,6 @@ function ProductTabsRenderer({
           />
         </div>
       )}
-    </div>
-  );
-}
-
-function RelatedProductsRenderer({
-  component,
-  theme,
-}: {
-  component: Extract<PageComponent, { type: "related_products" }>;
-  theme: ThemeConfig;
-}) {
-  const { data } = component;
-  const br = getBorderRadius(theme.borderRadius);
-  return (
-    <div className="px-4 md:px-8 py-8 border-t">
-      <h2
-        className="text-3xl font-bold mb-6"
-        style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
-      >
-        {data.title}
-      </h2>
-      <div
-        className="grid gap-6"
-        style={{ gridTemplateColumns: `repeat(${data.columns}, 1fr)` }}
-      >
-        {Array.from({ length: Math.min(data.limit, data.columns) }).map(
-          (_, i) => (
-            <div
-              key={i}
-              className={`overflow-hidden hover:scale-105 transition-all cursor-pointer ${data.cardStyle === "shadow" ? "shadow-lg" : data.cardStyle === "bordered" ? "border" : ""}`}
-              style={{ borderRadius: br }}
-            >
-              <div className="aspect-square bg-gray-200 flex items-center justify-center">
-                <Package className="h-14 w-14 text-gray-400" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium mb-1">Related Product {i + 1}</h3>
-                <p
-                  className="font-bold"
-                  style={{ color: theme.colors.primary }}
-                >
-                  ₦{((i + 1) * 2000).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          ),
-        )}
-      </div>
     </div>
   );
 }
