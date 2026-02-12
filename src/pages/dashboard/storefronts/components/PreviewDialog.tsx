@@ -1,14 +1,15 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Monitor, Smartphone, Home, ShoppingBag, Package } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  X,
-  Monitor,
-  Smartphone,
-  Home,
-  ShoppingBag,
-  Package,
-} from "lucide-react";
-import { useState } from "react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import type {
   StorefrontDesign,
@@ -16,6 +17,10 @@ import type {
   PageSpec,
 } from "@/types/storefront.design";
 import { PAGE_TYPE_LABELS } from "@/types/storefront.design";
+
+import { fetchStorefrontProducts } from "@/api/storefronts/fetchStorefrontProducts";
+import { AppLoader } from "@/components/loaders/AppLoader";
+import { StorefrontProvider } from "@/contexts/StorefrontContext";
 import { StorefrontRenderer } from "./StorefrontRenderer";
 
 interface PreviewDialogProps {
@@ -35,9 +40,8 @@ const PAGE_TABS: Array<{ type: PageType; icon: React.ReactNode }> = [
 ];
 
 /**
- * Full-screen preview dialog showing rendered pages.
- * Includes its own page switcher so the user can walk through all three pages
- * without closing the dialog.
+ * Full-screen preview dialog showing rendered pages with live data.
+ * Fetches real storefront products and passes them to the renderer.
  */
 export function PreviewDialog({
   open,
@@ -48,6 +52,33 @@ export function PreviewDialog({
 }: PreviewDialogProps) {
   const [localPage, setLocalPage] = useState<PageType>(activePage);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null,
+  );
+
+  // Fetch real storefront products for preview
+  const { data: storefrontProductsResponse, isLoading } = useQuery({
+    queryKey: ["storefront-products", design.storefrontId, 1, 100],
+    queryFn: fetchStorefrontProducts,
+    enabled: open && !!design.storefrontId,
+  });
+
+  const storefrontProducts = useMemo(
+    () => storefrontProductsResponse?.data ?? [],
+    [storefrontProductsResponse],
+  );
+
+  // Auto-select first product when products load
+  useEffect(() => {
+    if (storefrontProducts.length > 0 && !selectedProductId) {
+      const firstProduct =
+        storefrontProducts.find((p) => p.is_visible) || storefrontProducts[0];
+      if (firstProduct) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSelectedProductId(firstProduct.product_id);
+      }
+    }
+  }, [storefrontProducts, selectedProductId]);
 
   const handlePageChange = (page: PageType) => {
     setLocalPage(page);
@@ -63,6 +94,15 @@ export function PreviewDialog({
     };
   };
 
+  // For product detail preview, use selected product
+  const sampleProduct = useMemo(() => {
+    if (!selectedProductId) return storefrontProducts[0];
+    return (
+      storefrontProducts.find((p) => p.product_id === selectedProductId) ||
+      storefrontProducts[0]
+    );
+  }, [selectedProductId, storefrontProducts]);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] h-[95vh] p-0 bg-gray-100 flex flex-col">
@@ -73,7 +113,7 @@ export function PreviewDialog({
           </DialogTitle>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+            <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5 mr-4">
               <Button
                 variant={viewMode === "desktop" ? "default" : "ghost"}
                 size="sm"
@@ -91,10 +131,6 @@ export function PreviewDialog({
                 <Smartphone className="h-3.5 w-3.5" />
               </Button>
             </div>
-
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
@@ -121,17 +157,71 @@ export function PreviewDialog({
 
         {/* Preview content */}
         <div className="flex-1 overflow-auto p-8">
-          <div className="flex justify-center">
-            <div
-              className="bg-white shadow-2xl transition-all duration-300"
-              style={{
-                maxWidth: viewMode === "desktop" ? "100%" : "375px",
-                width: "100%",
-              }}
-            >
-              <StorefrontRenderer spec={buildSpec(localPage)} />
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <AppLoader text="Loading products..." />
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-center">
+              <div
+                className="bg-white shadow-2xl transition-all duration-300"
+                style={{
+                  maxWidth: viewMode === "desktop" ? "100%" : "375px",
+                  width: "100%",
+                }}
+              >
+                <StorefrontProvider
+                  storefrontId={design.storefrontId}
+                  mode="preview"
+                >
+                  <StorefrontRenderer
+                    spec={buildSpec(localPage)}
+                    storefrontProducts={storefrontProducts}
+                    currentProduct={
+                      localPage === "product_detail" ? sampleProduct : undefined
+                    }
+                    // Pass product selector for product detail page
+                    productSelector={
+                      localPage === "product_detail" &&
+                      storefrontProducts.length > 0 ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-blue-900">
+                            Preview Mode • {storefrontProducts.length} products
+                            loaded
+                          </span>
+                          <span className="text-gray-300">•</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-blue-900">
+                              Viewing:
+                            </span>
+                            <Select
+                              value={selectedProductId || ""}
+                              onValueChange={setSelectedProductId}
+                            >
+                              <SelectTrigger className="h-8 w-64 bg-white border-blue-200">
+                                <SelectValue placeholder="Select product" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white">
+                                {storefrontProducts.map((product) => (
+                                  <SelectItem
+                                    key={product.product_id}
+                                    value={product.product_id}
+                                  >
+                                    {product.product_name}
+                                    {!product.is_visible && " (Hidden)"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ) : undefined
+                    }
+                  />
+                </StorefrontProvider>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

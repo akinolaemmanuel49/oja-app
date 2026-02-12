@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, createContext, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type {
@@ -15,7 +15,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,7 +23,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MOCK_PRODUCTS } from "@/mocks/storefront.products";
+import { useStorefront } from "@/hooks/useStorefront";
+import { Slider } from "@/components/ui/slider";
+
+// ============================================================================
+// FILTER CONTEXT - Share filter state across components
+// ============================================================================
+
+interface FilterState {
+  priceRange: [number, number];
+  productType: "all" | "simple" | "variable";
+  sortOrder: string;
+}
+
+interface FilterContextValue {
+  filters: FilterState;
+  updateFilters: (updates: Partial<FilterState>) => void;
+  priceMin: number;
+  priceMax: number;
+}
+
+const FilterContext = createContext<FilterContextValue | null>(null);
+
+function useFilters() {
+  const context = useContext(FilterContext);
+  if (!context) {
+    throw new Error("useFilters must be used within FilterProvider");
+  }
+  return context;
+}
+
+// ============================================================================
+// PRODUCT DETAIL CONTEXT - Shared between product images & info
+// ============================================================================
+
+interface ProductDetailContextValue {
+  selectedVariantId: string | null;
+  setSelectedVariantId: (id: string | null) => void;
+  product: StorefrontProduct;
+}
+
+const ProductDetailContext = createContext<ProductDetailContextValue | null>(
+  null,
+);
+
+function useProductDetail() {
+  const context = useContext(ProductDetailContext);
+  if (!context) {
+    throw new Error(
+      "useProductDetail must be used within ProductDetailProvider",
+    );
+  }
+  return context;
+}
 
 // ============================================================================
 // PROPS INTERFACE
@@ -34,26 +85,157 @@ interface StorefrontRendererProps {
   spec: PageSpec;
   /** Actual storefront products from API */
   storefrontProducts?: StorefrontProduct[];
-  /** Storefront ID for navigation */
-  storefrontId?: string;
+  /** For product detail page - the product being viewed */
+  currentProduct?: StorefrontProduct;
+  /** Optional product selector for preview mode */
+  productSelector?: React.ReactNode;
 }
 
 /**
- * Production renderer with mock/real data toggle, navigation, pagination, and filters.
+ * Production renderer with live data, context-aware navigation, and dynamic filters.
  */
 export function StorefrontRenderer({
   spec,
   storefrontProducts = [],
-  storefrontId,
+  currentProduct,
+  productSelector,
 }: StorefrontRendererProps) {
-  const [useMockData, setUseMockData] = useState(
-    storefrontProducts.length === 0,
+  const { mode } = useStorefront();
+
+  // Calculate price range from actual products
+  const { priceMin, priceMax } = useMemo(() => {
+    const prices = storefrontProducts
+      .filter((p) => p.is_visible)
+      .map((p) => {
+        if (p.product_type === "simple") return p.base_price ?? 0;
+        const variantPrices = p.variants?.map((v) => v.price ?? 0) ?? [];
+        return variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+      })
+      .filter((price) => price > 0);
+
+    if (prices.length === 0) return { priceMin: 0, priceMax: 100000 };
+
+    return {
+      priceMin: Math.floor(Math.min(...prices) / 1000) * 1000,
+      priceMax: Math.ceil(Math.max(...prices) / 1000) * 1000,
+    };
+  }, [storefrontProducts]);
+
+  // Global filter state
+  const [filters, setFilters] = useState<FilterState>({
+    priceRange: [priceMin, priceMax],
+    productType: "all",
+    sortOrder: "newest_first",
+  });
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilters((prev) => {
+      const [min, max] = prev.priceRange;
+      return {
+        ...prev,
+        priceRange: [Math.max(min, priceMin), Math.min(max, priceMax)],
+      };
+    });
+  }, [priceMin, priceMax]);
+
+  const updateFilters = (updates: Partial<FilterState>) => {
+    setFilters((prev) => ({ ...prev, ...updates }));
+  };
+
+  // Apply filters to products
+  const filteredProducts = useMemo(() => {
+    let result = storefrontProducts.filter((p) => p.is_visible);
+
+    // Price filter
+    const [min, max] = filters.priceRange;
+    result = result.filter((p) => {
+      const price =
+        p.product_type === "simple"
+          ? (p.base_price ?? 0)
+          : Math.min(...(p.variants?.map((v) => v.price ?? 0) ?? [Infinity]));
+      return price >= min && price <= max;
+    });
+
+    // Type filter
+    if (filters.productType !== "all") {
+      result = result.filter((p) => p.product_type === filters.productType);
+    }
+
+    // Apply sorting
+    switch (filters.sortOrder) {
+      case "newest_first":
+        result.sort((a, b) => (b.display_order ?? 0) - (a.display_order ?? 0));
+        break;
+      case "oldest_first":
+        result.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+        break;
+      case "price_low_high":
+        result.sort((a, b) => {
+          const priceA =
+            a.product_type === "simple"
+              ? (a.base_price ?? 0)
+              : Math.min(...(a.variants?.map((v) => v.price ?? 0) ?? [0]));
+          const priceB =
+            b.product_type === "simple"
+              ? (b.base_price ?? 0)
+              : Math.min(...(b.variants?.map((v) => v.price ?? 0) ?? [0]));
+          return priceA - priceB;
+        });
+        break;
+      case "price_high_low":
+        result.sort((a, b) => {
+          const priceA =
+            a.product_type === "simple"
+              ? (a.base_price ?? 0)
+              : Math.max(...(a.variants?.map((v) => v.price ?? 0) ?? [0]));
+          const priceB =
+            b.product_type === "simple"
+              ? (b.base_price ?? 0)
+              : Math.max(...(b.variants?.map((v) => v.price ?? 0) ?? [0]));
+          return priceB - priceA;
+        });
+        break;
+      case "name_a_z":
+        result.sort((a, b) => a.product_name.localeCompare(b.product_name));
+        break;
+      case "name_z_a":
+        result.sort((a, b) => b.product_name.localeCompare(a.product_name));
+        break;
+    }
+
+    return result;
+  }, [storefrontProducts, filters]);
+
+  // ========== PRODUCT DETAIL STATE ==========
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    null,
   );
 
-  // Switch to real data automatically when products are available
-  const products = useMockData ? MOCK_PRODUCTS : storefrontProducts;
+  // Auto-select first variant when product changes
+  useEffect(() => {
+    if (
+      currentProduct?.product_type === "variable" &&
+      currentProduct.variants?.length
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedVariantId(currentProduct.variants[0].id);
+    } else {
+      setSelectedVariantId(null);
+    }
+  }, [currentProduct]);
 
-  return (
+  const productDetailValue = useMemo(
+    () => ({
+      selectedVariantId,
+      setSelectedVariantId,
+      product: currentProduct!,
+    }),
+    [selectedVariantId, currentProduct],
+  );
+
+  // ========== RENDER ==========
+  const content = (
     <div
       style={{
         fontFamily: spec.theme.fonts.body,
@@ -61,23 +243,21 @@ export function StorefrontRenderer({
         backgroundColor: spec.theme.colors.background,
       }}
     >
-      {/* Mock data toggle - only show if we have real data available */}
-      {storefrontProducts.length > 0 && (
-        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium text-yellow-900">
-              Data Source:
-            </Label>
-            <Switch
-              checked={useMockData}
-              onCheckedChange={setUseMockData}
-              className="bg-yellow-300 data-[state=checked]:bg-yellow-600"
-            />
-            <span className="text-sm text-yellow-900">
-              {useMockData ? "Mock Data" : "Real Data"} ({products.length}{" "}
-              products)
-            </span>
-          </div>
+      {/* Show product count/selector in preview mode */}
+      {mode === "preview" && storefrontProducts.length > 0 && (
+        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
+          {productSelector ? (
+            <div className="flex items-center justify-center">
+              {productSelector}
+            </div>
+          ) : (
+            <div className="text-center">
+              <span className="text-sm text-blue-900">
+                Preview Mode • {storefrontProducts.length} products loaded •{" "}
+                {filteredProducts.length} visible after filters
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -88,11 +268,25 @@ export function StorefrontRenderer({
             key={component.id}
             component={component}
             theme={spec.theme}
-            products={products}
-            storefrontId={storefrontId}
+            products={filteredProducts}
+            currentProduct={currentProduct}
           />
         ))}
     </div>
+  );
+
+  return (
+    <FilterContext.Provider
+      value={{ filters, updateFilters, priceMin, priceMax }}
+    >
+      {currentProduct ? (
+        <ProductDetailContext.Provider value={productDetailValue}>
+          {content}
+        </ProductDetailContext.Provider>
+      ) : (
+        content
+      )}
+    </FilterContext.Provider>
   );
 }
 
@@ -104,12 +298,12 @@ function ComponentRenderer({
   component,
   theme,
   products,
-  storefrontId,
+  currentProduct,
 }: {
   component: PageComponent;
   theme: ThemeConfig;
   products: StorefrontProduct[];
-  storefrontId?: string;
+  currentProduct?: StorefrontProduct;
 }) {
   switch (component.type) {
     case "hero":
@@ -124,7 +318,6 @@ function ComponentRenderer({
           component={component}
           theme={theme}
           products={products}
-          storefrontId={storefrontId}
         />
       );
     case "product_carousel":
@@ -133,7 +326,6 @@ function ComponentRenderer({
           component={component}
           theme={theme}
           products={products}
-          storefrontId={storefrontId}
         />
       );
     case "image_gallery":
@@ -141,22 +333,42 @@ function ComponentRenderer({
     case "spacer":
       return <SpacerRenderer component={component} />;
     case "products_header":
-      return <ProductsHeaderRenderer component={component} theme={theme} />;
+      return (
+        <ProductsHeaderRenderer
+          component={component}
+          theme={theme}
+          productCount={products.length}
+        />
+      );
     case "products_filter_bar":
       return <ProductsFilterBarRenderer component={component} theme={theme} />;
     case "product_images":
-      return <ProductImagesRenderer component={component} theme={theme} />;
+      return (
+        <ProductImagesRenderer
+          component={component}
+          theme={theme}
+          product={currentProduct}
+        />
+      );
     case "product_info":
-      return <ProductInfoRenderer component={component} theme={theme} />;
+      return (
+        <ProductInfoRenderer
+          component={component}
+          theme={theme}
+          product={currentProduct}
+        />
+      );
     case "product_tabs":
-      return <ProductTabsRenderer component={component} />;
+      return (
+        <ProductTabsRenderer component={component} product={currentProduct} />
+      );
     case "related_products":
       return (
         <RelatedProductsRenderer
           component={component}
           theme={theme}
           products={products}
-          storefrontId={storefrontId}
+          currentProductId={currentProduct?.product_id}
         />
       );
     default:
@@ -165,7 +377,7 @@ function ComponentRenderer({
 }
 
 // ============================================================================
-// SHARED RENDERERS (unchanged)
+// SHARED RENDERERS
 // ============================================================================
 
 function HeroRenderer({
@@ -271,13 +483,6 @@ function BannerRenderer({
           className="w-full h-full object-cover"
         />
       )}
-      {data.images.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-          {data.images.map((_, i) => (
-            <div key={i} className="w-2 h-2 rounded-full bg-white opacity-50" />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -377,76 +582,24 @@ function SpacerRenderer({
 }
 
 // ============================================================================
-// PRODUCT COMPONENTS WITH REAL LOGIC
+// PRODUCT COMPONENTS WITH PAGINATION
 // ============================================================================
 
 function ProductGridRenderer({
   component,
   theme,
   products,
-  storefrontId,
 }: {
   component: Extract<PageComponent, { type: "product_grid" }>;
   theme: ThemeConfig;
   products: StorefrontProduct[];
-  storefrontId?: string;
 }) {
   const { data } = component;
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = data.limit;
 
-  // Apply sorting
-  const sortedProducts = useMemo(() => {
-    const sorted = [...products].filter((p) => p.is_visible);
-
-    switch (data.sortOrder) {
-      case "newest_first":
-        return sorted.sort(
-          (a, b) => (b.display_order ?? 0) - (a.display_order ?? 0),
-        );
-      case "oldest_first":
-        return sorted.sort(
-          (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
-        );
-      case "price_low_high":
-        return sorted.sort((a, b) => {
-          const priceA =
-            a.product_type === "simple"
-              ? (a.base_price ?? 0)
-              : Math.min(...(a.variants?.map((v) => v.price ?? 0) ?? [0]));
-          const priceB =
-            b.product_type === "simple"
-              ? (b.base_price ?? 0)
-              : Math.min(...(b.variants?.map((v) => v.price ?? 0) ?? [0]));
-          return priceA - priceB;
-        });
-      case "price_high_low":
-        return sorted.sort((a, b) => {
-          const priceA =
-            a.product_type === "simple"
-              ? (a.base_price ?? 0)
-              : Math.max(...(a.variants?.map((v) => v.price ?? 0) ?? [0]));
-          const priceB =
-            b.product_type === "simple"
-              ? (b.base_price ?? 0)
-              : Math.max(...(b.variants?.map((v) => v.price ?? 0) ?? [0]));
-          return priceB - priceA;
-        });
-      case "name_a_z":
-        return sorted.sort((a, b) =>
-          a.product_name.localeCompare(b.product_name),
-        );
-      case "name_z_a":
-        return sorted.sort((a, b) =>
-          b.product_name.localeCompare(a.product_name),
-        );
-      default:
-        return sorted;
-    }
-  }, [products, data.sortOrder]);
-
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
-  const paginatedProducts = sortedProducts.slice(
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
@@ -467,55 +620,63 @@ function ProductGridRenderer({
         </h2>
       )}
 
-      <div
-        className={`grid ${spacing}`}
-        style={{
-          gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
-        }}
-      >
-        {paginatedProducts.map((product) => (
-          <ProductCard
-            key={product.product_id}
-            product={product}
-            showPrice={data.showPrice}
-            showSku={data.showSku}
-            cardStyle={data.cardStyle}
-            theme={theme}
-            borderRadius={br}
-            storefrontId={storefrontId}
-          />
-        ))}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+      {paginatedProducts.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <p>No products match the current filters</p>
         </div>
-      )}
+      ) : (
+        <>
+          <div
+            className={`grid ${spacing}`}
+            style={{
+              gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
+            }}
+          >
+            {paginatedProducts.map((product) => (
+              <ProductCard
+                key={product.product_id}
+                product={product}
+                showPrice={data.showPrice}
+                showSku={data.showSku}
+                cardStyle={data.cardStyle}
+                theme={theme}
+                borderRadius={br}
+              />
+            ))}
+          </div>
 
-      <div className="text-center mt-6 text-sm text-gray-500">
-        Showing {paginatedProducts.length} of {sortedProducts.length} products •
-        Sort: {data.sortOrder.replace(/_/g, " ")}
-      </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          <div className="text-center mt-6 text-sm text-gray-500">
+            Showing {paginatedProducts.length} of {products.length} products
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -524,19 +685,14 @@ function ProductCarouselRenderer({
   component,
   theme,
   products,
-  storefrontId,
 }: {
   component: Extract<PageComponent, { type: "product_carousel" }>;
   theme: ThemeConfig;
   products: StorefrontProduct[];
-  storefrontId?: string;
 }) {
   const { data } = component;
   const br = getBorderRadius(theme.borderRadius);
-
-  const visibleProducts = products
-    .filter((p) => p.is_visible)
-    .slice(0, data.limit);
+  const visibleProducts = products.slice(0, data.limit);
 
   return (
     <div className="px-4 md:px-8 py-10 md:py-12">
@@ -562,7 +718,6 @@ function ProductCarouselRenderer({
               cardStyle="shadow"
               theme={theme}
               borderRadius={br}
-              storefrontId={storefrontId}
             />
           </div>
         ))}
@@ -575,18 +730,17 @@ function RelatedProductsRenderer({
   component,
   theme,
   products,
-  storefrontId,
+  currentProductId,
 }: {
   component: Extract<PageComponent, { type: "related_products" }>;
   theme: ThemeConfig;
   products: StorefrontProduct[];
-  storefrontId?: string;
+  currentProductId?: string;
 }) {
   const { data } = component;
   const br = getBorderRadius(theme.borderRadius);
-
   const visibleProducts = products
-    .filter((p) => p.is_visible)
+    .filter((p) => p.product_id !== currentProductId)
     .slice(0, data.limit);
 
   return (
@@ -613,7 +767,6 @@ function RelatedProductsRenderer({
             cardStyle={data.cardStyle}
             theme={theme}
             borderRadius={br}
-            storefrontId={storefrontId}
           />
         ))}
       </div>
@@ -628,7 +781,6 @@ function ProductCard({
   cardStyle,
   theme,
   borderRadius,
-  storefrontId,
 }: {
   product: StorefrontProduct;
   showPrice: boolean;
@@ -636,9 +788,10 @@ function ProductCard({
   cardStyle: "minimal" | "bordered" | "shadow";
   theme: ThemeConfig;
   borderRadius: string;
-  storefrontId?: string;
 }) {
   const navigate = useNavigate();
+  const { mode, getProductPath } = useStorefront();
+
   const hasVariants =
     product.product_type === "variable" &&
     product.variants &&
@@ -651,16 +804,19 @@ function ProductCard({
     : product.main_image_url;
 
   const handleClick = () => {
-    if (storefrontId) {
-      navigate(`/storefronts/${storefrontId}/products/${product.product_id}`);
+    if (mode === "preview") {
+      return;
     }
+    navigate(getProductPath(product.product_id));
   };
 
   return (
     <div
       onClick={handleClick}
       className={cn(
-        "group block overflow-hidden transition-all duration-200 hover:-translate-y-1 bg-white cursor-pointer",
+        "group block overflow-hidden transition-all duration-200 bg-white",
+        mode === "storefront" && "cursor-pointer hover:-translate-y-1",
+        mode === "preview" && "cursor-default",
         cardStyle === "bordered" && "border border-gray-200",
         cardStyle === "shadow" && "shadow-md hover:shadow-xl",
       )}
@@ -705,7 +861,7 @@ function ProductCard({
 
         {hasVariants && (
           <p className="text-xs text-gray-500 mt-1 italic">
-            Available in {product.variants!.length} variant
+            {product.variants!.length} variant
             {product.variants!.length !== 1 ? "s" : ""}
           </p>
         )}
@@ -715,17 +871,21 @@ function ProductCard({
 }
 
 // ============================================================================
-// PRODUCTS PAGE RENDERERS WITH FILTERS
+// PRODUCTS PAGE WITH DYNAMIC FILTERS
 // ============================================================================
 
 function ProductsHeaderRenderer({
   component,
   theme,
+  productCount,
 }: {
   component: Extract<PageComponent, { type: "products_header" }>;
   theme: ThemeConfig;
+  productCount: number;
 }) {
   const { data } = component;
+  const { filters, updateFilters } = useFilters();
+
   return (
     <div className="px-4 md:px-8 py-6">
       <h1
@@ -739,13 +899,28 @@ function ProductsHeaderRenderer({
       )}
       <div className="flex items-center justify-between mt-4">
         {data.showResultCount && (
-          <span className="text-sm text-gray-500">Showing 24 products</span>
+          <span className="text-sm text-gray-500">
+            Showing {productCount} product{productCount !== 1 ? "s" : ""}
+          </span>
         )}
         {data.showSortDropdown && (
-          <div className="flex items-center gap-2 border rounded px-4 py-2 bg-white text-sm cursor-pointer hover:bg-gray-50">
-            <SlidersHorizontal className="h-4 w-4 text-gray-400" />
-            <span>{data.defaultSortOrder.replace(/_/g, " ")}</span>
-          </div>
+          <Select
+            value={filters.sortOrder}
+            onValueChange={(value) => updateFilters({ sortOrder: value })}
+          >
+            <SelectTrigger className="w-50">
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="newest_first">Newest First</SelectItem>
+              <SelectItem value="oldest_first">Oldest First</SelectItem>
+              <SelectItem value="price_low_high">Price: Low to High</SelectItem>
+              <SelectItem value="price_high_low">Price: High to Low</SelectItem>
+              <SelectItem value="name_a_z">Name: A-Z</SelectItem>
+              <SelectItem value="name_z_a">Name: Z-A</SelectItem>
+            </SelectContent>
+          </Select>
         )}
       </div>
     </div>
@@ -760,64 +935,115 @@ function ProductsFilterBarRenderer({
   theme: ThemeConfig;
 }) {
   const { data } = component;
-  const [priceRange, setPriceRange] = useState<string>("all");
-  const [productType, setProductType] = useState<string>("all");
+  const { filters, updateFilters, priceMin, priceMax } = useFilters();
 
   return (
     <div
-      className={`px-4 md:px-8 py-4 border-y flex ${data.filterPosition === "side" ? "flex-col gap-3" : "flex-row flex-wrap gap-3 items-center"} bg-gray-50 ${data.sticky ? "sticky top-0 z-10" : ""}`}
+      className={`px-4 md:px-8 py-4 border-y flex ${
+        data.filterPosition === "side"
+          ? "flex-col gap-4"
+          : "flex-row flex-wrap gap-4 items-start"
+      } bg-gray-50 ${data.sticky ? "sticky top-0 z-10" : ""}`}
     >
-      <span className="text-sm font-medium text-gray-700">Filters:</span>
+      <span className="text-sm font-medium text-gray-700 min-w-fit">
+        Filters:
+      </span>
 
       {data.showPriceFilter && (
-        <Select value={priceRange} onValueChange={setPriceRange}>
-          <SelectTrigger
-            className="w-45 bg-white"
-            style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
-          >
-            <SelectValue placeholder="Price Range" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">All Prices</SelectItem>
-            <SelectItem value="0-10000">₦0 - ₦10,000</SelectItem>
-            <SelectItem value="10000-50000">₦10,000 - ₦50,000</SelectItem>
-            <SelectItem value="50000-100000">₦50,000 - ₦100,000</SelectItem>
-            <SelectItem value="100000+">₦100,000+</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex-1 min-w-50">
+          <Label className="text-xs font-medium mb-2 block">Price Range</Label>
+          <div className="space-y-2">
+            <Slider
+              value={filters.priceRange}
+              onValueChange={(value) =>
+                updateFilters({ priceRange: value as [number, number] })
+              }
+              min={priceMin}
+              max={priceMax}
+              step={500}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-gray-600">
+              <span>₦{filters.priceRange[0].toLocaleString()}</span>
+              <span>₦{filters.priceRange[1].toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
       )}
 
       {data.showTypeFilter && (
-        <Select value={productType} onValueChange={setProductType}>
-          <SelectTrigger
-            className="w-45 bg-white"
-            style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
+        <div className="min-w-37.5">
+          <Label className="text-xs font-medium mb-2 block">Product Type</Label>
+          <Select
+            value={filters.productType}
+            onValueChange={(value) =>
+              updateFilters({
+                productType: value as "all" | "simple" | "variable",
+              })
+            }
           >
-            <SelectValue placeholder="Product Type" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="simple">Simple</SelectItem>
-            <SelectItem value="variable">Variable</SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              className="w-full bg-white"
+              style={{ borderRadius: getBorderRadius(theme.borderRadius) }}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="simple">Simple</SelectItem>
+              <SelectItem value="variable">Variable</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       )}
     </div>
   );
 }
 
 // ============================================================================
-// PRODUCT DETAIL RENDERERS WITH VARIANT SELECTION
+// PRODUCT DETAIL RENDERERS WITH VARIANT IMAGE SWITCHING
 // ============================================================================
 
 function ProductImagesRenderer({
   component,
   theme,
+  product,
 }: {
   component: Extract<PageComponent, { type: "product_images" }>;
   theme: ThemeConfig;
+  product?: StorefrontProduct;
 }) {
   const { data } = component;
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Use the shared product detail context
+  const { selectedVariantId } = useProductDetail();
+
+  // Get images based on product type and selected variant
+  const images = useMemo(() => {
+    if (!product) return [];
+
+    if (product.product_type === "simple") {
+      return product.main_image_url ? [product.main_image_url] : [];
+    }
+
+    // For variable products, use selected variant from context
+    const variantToUse = selectedVariantId
+      ? product.variants?.find((v) => v.id === selectedVariantId)
+      : product.variants?.[0];
+
+    if (!variantToUse) return [];
+
+    // Get all images for this variant
+    return variantToUse.image_urls || [];
+  }, [product, selectedVariantId]);
+
+  // Reset selected image when variant changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedImageIndex(0);
+  }, [selectedVariantId]);
+
   const aspectMap = {
     square: "aspect-square",
     portrait: "aspect-[3/4]",
@@ -825,44 +1051,79 @@ function ProductImagesRenderer({
   };
   const br = getBorderRadius(theme.borderRadius);
 
+  if (images.length === 0) {
+    return (
+      <div className="px-4 md:px-8 py-8">
+        <div
+          className={`bg-gray-200 flex items-center justify-center ${aspectMap[data.mainImageAspect]}`}
+          style={{ borderRadius: br }}
+        >
+          <Package className="h-24 w-24 text-gray-400" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`flex ${data.thumbnailPosition === "left" && data.showThumbnails ? "flex-row gap-4" : "flex-col gap-4"} px-4 md:px-8 py-8`}
+      className={`flex ${
+        data.thumbnailPosition === "left" && data.showThumbnails
+          ? "flex-row gap-4"
+          : "flex-col gap-4"
+      } px-4 md:px-8 py-8`}
     >
       {data.showThumbnails && data.thumbnailPosition === "left" && (
         <div className="flex flex-col gap-2">
-          {[1, 2, 3, 4].map((i) => (
+          {images.map((img, i) => (
             <div
               key={i}
-              className="w-16 h-16 bg-gray-200 cursor-pointer border-2 hover:border-blue-400 transition-colors"
+              onClick={() => setSelectedImageIndex(i)}
+              className={cn(
+                "w-16 h-16 cursor-pointer border-2 transition-colors overflow-hidden",
+                selectedImageIndex === i
+                  ? "border-blue-400"
+                  : "border-gray-200 hover:border-gray-300",
+              )}
               style={{ borderRadius: br }}
             >
-              <div className="w-full h-full flex items-center justify-center">
-                <Package className="h-6 w-6 text-gray-400" />
-              </div>
+              <img src={img} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
         </div>
       )}
 
       <div
-        className={`flex-1 bg-gray-200 flex items-center justify-center ${aspectMap[data.mainImageAspect]} ${data.zoomOnHover ? "overflow-hidden group" : ""}`}
+        className={`flex-1 overflow-hidden ${data.zoomOnHover ? "group" : ""}`}
         style={{ borderRadius: br }}
       >
-        <Package
-          className={`h-24 w-24 text-gray-400 ${data.zoomOnHover ? "transition-transform group-hover:scale-110" : ""}`}
-        />
+        <div className={`${aspectMap[data.mainImageAspect]} relative`}>
+          <img
+            src={images[selectedImageIndex]}
+            alt={product?.product_name}
+            className={`w-full h-full object-cover ${
+              data.zoomOnHover
+                ? "transition-transform group-hover:scale-110"
+                : ""
+            }`}
+          />
+        </div>
       </div>
 
       {data.showThumbnails && data.thumbnailPosition === "bottom" && (
         <div className="flex gap-2 flex-wrap">
-          {[1, 2, 3, 4].map((i) => (
+          {images.map((img, i) => (
             <div
               key={i}
-              className="w-16 h-16 bg-gray-200 cursor-pointer border-2 hover:border-blue-400 transition-colors flex items-center justify-center"
+              onClick={() => setSelectedImageIndex(i)}
+              className={cn(
+                "w-16 h-16 cursor-pointer border-2 transition-colors overflow-hidden",
+                selectedImageIndex === i
+                  ? "border-blue-400"
+                  : "border-gray-200 hover:border-gray-300",
+              )}
               style={{ borderRadius: br }}
             >
-              <Package className="h-6 w-6 text-gray-400" />
+              <img src={img} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
         </div>
@@ -874,14 +1135,44 @@ function ProductImagesRenderer({
 function ProductInfoRenderer({
   component,
   theme,
+  product,
 }: {
   component: Extract<PageComponent, { type: "product_info" }>;
   theme: ThemeConfig;
+  product?: StorefrontProduct;
 }) {
   const { data } = component;
-  const [selectedVariant, setSelectedVariant] = useState("Small");
   const [quantity, setQuantity] = useState(1);
+
+  // Use the shared product detail context
+  const { selectedVariantId, setSelectedVariantId } = useProductDetail();
+
   const br = getBorderRadius(theme.borderRadius);
+
+  if (!product) {
+    return (
+      <div className="px-4 md:px-8 py-8">
+        <div className="p-8 bg-gray-100 rounded text-center text-gray-500">
+          No product data available
+        </div>
+      </div>
+    );
+  }
+
+  const isVariable = product.product_type === "variable";
+  const currentVariant =
+    isVariable && selectedVariantId
+      ? product.variants?.find((v) => v.id === selectedVariantId)
+      : null;
+
+  const displayPrice = isVariable ? currentVariant?.price : product.base_price;
+  const displaySku = isVariable ? currentVariant?.sku : product.sku;
+  const inStock = isVariable ? (currentVariant?.stock_quantity ?? 0) > 0 : true;
+
+  const variantAttributes =
+    isVariable && product.variants
+      ? Object.keys(product.variants[0]?.attributes || {})
+      : [];
 
   return (
     <div className="px-4 md:px-8 py-8 space-y-4">
@@ -890,63 +1181,112 @@ function ProductInfoRenderer({
           className="text-3xl font-bold"
           style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
         >
-          Sample Product Name
+          {product.product_name}
         </h1>
-        {data.showSku && (
-          <p className="text-sm text-gray-400 mt-1">SKU: PROD-001</p>
+        {data.showSku && displaySku && (
+          <p className="text-sm text-gray-400 mt-1">SKU: {displaySku}</p>
         )}
-        {data.pricePosition === "below_name" && (
+        {data.pricePosition === "below_name" && displayPrice != null && (
           <p
             className="text-2xl font-bold mt-2"
             style={{ color: theme.colors.primary }}
           >
-            ₦12,500
+            ₦{displayPrice.toLocaleString()}
           </p>
         )}
       </div>
 
       {data.showStockStatus && (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
-          In Stock
+        <span
+          className={cn(
+            "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
+            inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
+          )}
+        >
+          {inStock ? "In Stock" : "Out of Stock"}
         </span>
       )}
 
-      {data.showVariantSelector && (
-        <div>
-          <p className="text-sm font-medium mb-2">Select Variant</p>
-          {data.variantSelectorStyle === "buttons" ? (
-            <div className="flex gap-2 flex-wrap">
-              {["Small", "Medium", "Large", "XL"].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setSelectedVariant(v)}
-                  className={cn(
-                    "px-4 py-2 border-2 text-sm font-medium transition-colors",
-                    selectedVariant === v
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-gray-300 hover:border-blue-300",
+      {data.showVariantSelector &&
+        isVariable &&
+        product.variants &&
+        variantAttributes.length > 0 && (
+          <div className="space-y-3">
+            {variantAttributes.map((attrName) => {
+              const uniqueValues = Array.from(
+                new Set(product.variants!.map((v) => v.attributes[attrName])),
+              );
+
+              return (
+                <div key={attrName}>
+                  <p className="text-sm font-medium mb-2">{attrName}</p>
+                  {data.variantSelectorStyle === "buttons" ? (
+                    <div className="flex gap-2 flex-wrap">
+                      {uniqueValues.map((value) => {
+                        const variant = product.variants!.find(
+                          (v) =>
+                            v.attributes[attrName] === value &&
+                            (!selectedVariantId ||
+                              v.id === selectedVariantId ||
+                              Object.keys(v.attributes).every(
+                                (k) =>
+                                  k === attrName ||
+                                  v.attributes[k] ===
+                                    currentVariant?.attributes[k],
+                              )),
+                        );
+
+                        const isSelected = variant?.id === selectedVariantId;
+
+                        return (
+                          <button
+                            key={String(value)}
+                            onClick={() =>
+                              variant && setSelectedVariantId(variant.id)
+                            }
+                            className={cn(
+                              "px-4 py-2 border-2 text-sm font-medium transition-colors",
+                              isSelected
+                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                : "border-gray-300 hover:border-blue-300",
+                            )}
+                            style={{ borderRadius: br }}
+                          >
+                            {String(value)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Select
+                      value={currentVariant?.attributes[attrName] as string}
+                      onValueChange={(value) => {
+                        const variant = product.variants!.find(
+                          (v) => v.attributes[attrName] === value,
+                        );
+                        if (variant) setSelectedVariantId(variant.id);
+                      }}
+                    >
+                      <SelectTrigger
+                        className="w-full"
+                        style={{ borderRadius: br }}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        {uniqueValues.map((value) => (
+                          <SelectItem key={String(value)} value={String(value)}>
+                            {String(value)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
-                  style={{ borderRadius: br }}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <Select value={selectedVariant} onValueChange={setSelectedVariant}>
-              <SelectTrigger className="w-full" style={{ borderRadius: br }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="Small">Small</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Large">Large</SelectItem>
-                <SelectItem value="XL">XL</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
       {data.showQuantitySelector && (
         <div>
@@ -971,17 +1311,18 @@ function ProductInfoRenderer({
         </div>
       )}
 
-      {data.pricePosition === "above_cart" && (
+      {data.pricePosition === "above_cart" && displayPrice != null && (
         <p
           className="text-2xl font-bold"
           style={{ color: theme.colors.primary }}
         >
-          ₦12,500
+          ₦{displayPrice.toLocaleString()}
         </p>
       )}
 
       <button
-        className="w-full py-4 font-semibold text-white flex items-center justify-center gap-3 text-lg transition-all hover:opacity-90"
+        disabled={!inStock}
+        className="w-full py-4 font-semibold text-white flex items-center justify-center gap-3 text-lg transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ backgroundColor: theme.colors.primary, borderRadius: br }}
       >
         <ShoppingCart className="h-5 w-5" />
@@ -993,14 +1334,41 @@ function ProductInfoRenderer({
 
 function ProductTabsRenderer({
   component,
+  product,
 }: {
   component: Extract<PageComponent, { type: "product_tabs" }>;
+  product?: StorefrontProduct;
 }) {
   const { data } = component;
   const [activeTabId, setActiveTabId] = useState(data.defaultTab);
-  const enabledTabs = data.tabs.filter((t) => t.enabled);
-  const activeTab =
-    enabledTabs.find((t) => t.id === activeTabId) ?? enabledTabs[0];
+
+  // Process tabs to inject product description where needed
+  const processedTabs = useMemo(() => {
+    if (!product?.product_description) return data.tabs;
+
+    return data.tabs.map((tab) => {
+      // Check if this is a description tab (case insensitive)
+      if (tab.label.toLowerCase().includes("description")) {
+        return {
+          ...tab,
+          content: `<p>${product.product_description}</p>`,
+        };
+      }
+      return tab;
+    });
+  }, [data.tabs, product]);
+
+  // Filter enabled tabs
+  const enabledTabs = useMemo(
+    () => processedTabs.filter((t) => t.enabled),
+    [processedTabs],
+  );
+
+  // Find active tab (fallback to first enabled tab)
+  const activeTab = useMemo(
+    () => enabledTabs.find((t) => t.id === activeTabId) ?? enabledTabs[0],
+    [enabledTabs, activeTabId],
+  );
 
   const tabBtnClass = (isActive: boolean) => {
     const base =
@@ -1020,6 +1388,11 @@ function ProductTabsRenderer({
       `border ${isActive ? "bg-white border-b-white -mb-px z-10 relative" : "bg-gray-50 text-gray-500"}`
     );
   };
+
+  // Don't render if there are no enabled tabs
+  if (enabledTabs.length === 0) {
+    return null;
+  }
 
   return (
     <div className="px-4 md:px-8 py-8">
