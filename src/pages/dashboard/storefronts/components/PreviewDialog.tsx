@@ -198,7 +198,7 @@ export function PreviewDialog({
                               value={selectedProductId || ""}
                               onValueChange={setSelectedProductId}
                             >
-                              <SelectTrigger className="h-8 w-64 bg-white border-blue-200">
+                              <SelectTrigger className="h-8 w-64 sm:w-40 bg-white border-blue-200">
                                 <SelectValue placeholder="Select product" />
                               </SelectTrigger>
                               <SelectContent className="bg-white">

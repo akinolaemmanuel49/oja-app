@@ -64,8 +64,6 @@ export default function ManageGroupMembership() {
     return users.filter((user) => user.is_root === false);
   }, [usersData]);
 
-  console.log({ users });
-
   const currentMemberIds = useMemo(
     () => new Set(membersData?.data?.map((m) => m.id) || []),
     [membersData],

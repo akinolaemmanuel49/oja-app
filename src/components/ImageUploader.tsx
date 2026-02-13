@@ -54,7 +54,6 @@ export function ImageUploader({
     formData.append("upload_preset", "unsigned_preset");
 
     try {
-      console.log({ CLOUDINARY_NAME });
       // For unsigned upload (simpler but less secure)
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`,

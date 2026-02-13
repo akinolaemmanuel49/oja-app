@@ -102,7 +102,7 @@ export function StorefrontRenderer({
 }: StorefrontRendererProps) {
   const { mode } = useStorefront();
 
-  // Calculate price range from actual products
+  // Calculate price range from actual products - add buffer to ensure max is captured
   const { priceMin, priceMax } = useMemo(() => {
     const prices = storefrontProducts
       .filter((p) => p.is_visible)
@@ -115,9 +115,13 @@ export function StorefrontRenderer({
 
     if (prices.length === 0) return { priceMin: 0, priceMax: 100000 };
 
+    const rawMin = Math.min(...prices);
+    const rawMax = Math.max(...prices);
+
     return {
-      priceMin: Math.floor(Math.min(...prices) / 1000) * 1000,
-      priceMax: Math.ceil(Math.max(...prices) / 1000) * 1000,
+      priceMin: Math.floor(rawMin / 1000) * 1000,
+      // Add 1000 to max to ensure the highest priced product is included
+      priceMax: Math.ceil((rawMax + 1000) / 1000) * 1000,
     };
   }, [storefrontProducts]);
 
@@ -247,7 +251,7 @@ export function StorefrontRenderer({
       {mode === "preview" && storefrontProducts.length > 0 && (
         <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
           {productSelector ? (
-            <div className="flex items-center justify-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
               {productSelector}
             </div>
           ) : (
@@ -582,7 +586,7 @@ function SpacerRenderer({
 }
 
 // ============================================================================
-// PRODUCT COMPONENTS WITH PAGINATION
+// PRODUCT COMPONENTS WITH MOBILE RESPONSIVENESS
 // ============================================================================
 
 function ProductGridRenderer({
@@ -604,16 +608,27 @@ function ProductGridRenderer({
     currentPage * itemsPerPage,
   );
 
-  const spacing = { compact: "gap-4", normal: "gap-6", relaxed: "gap-8" }[
-    data.spacing
-  ];
+  const spacing = {
+    compact: "gap-3 md:gap-4",
+    normal: "gap-4 md:gap-6",
+    relaxed: "gap-6 md:gap-8",
+  }[data.spacing];
   const br = getBorderRadius(theme.borderRadius);
 
+  // Responsive column classes
+  const getColumnClass = (columns: number) => {
+    // Mobile: 2 columns, Tablet: 3-4 columns, Desktop: configured columns
+    if (columns <= 3) return "grid-cols-2 md:grid-cols-3";
+    if (columns === 4) return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+    if (columns === 5) return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5";
+    return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6";
+  };
+
   return (
-    <div className="px-4 md:px-8 py-10 md:py-12">
+    <div className="px-4 md:px-8 py-8 md:py-12">
       {data.title && (
         <h2
-          className="text-2xl md:text-3xl font-bold mb-6 md:mb-8"
+          className="text-xl md:text-3xl font-bold mb-4 md:mb-8"
           style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
         >
           {data.title}
@@ -622,17 +637,14 @@ function ProductGridRenderer({
 
       {paginatedProducts.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-          <p>No products match the current filters</p>
+          <Package className="h-12 md:h-16 w-12 md:w-16 mx-auto mb-3 md:mb-4 text-gray-300" />
+          <p className="text-sm md:text-base">
+            No products match the current filters
+          </p>
         </div>
       ) : (
         <>
-          <div
-            className={`grid ${spacing}`}
-            style={{
-              gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
-            }}
-          >
+          <div className={`grid ${spacing} ${getColumnClass(data.columns)}`}>
             {paginatedProducts.map((product) => (
               <ProductCard
                 key={product.product_id}
@@ -647,7 +659,7 @@ function ProductGridRenderer({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
+            <div className="flex items-center justify-center gap-2 mt-6 md:mt-8">
               <Button
                 variant="outline"
                 size="sm"
@@ -656,7 +668,7 @@ function ProductGridRenderer({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-gray-600">
+              <span className="text-xs md:text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </span>
               <Button
@@ -672,7 +684,7 @@ function ProductGridRenderer({
             </div>
           )}
 
-          <div className="text-center mt-6 text-sm text-gray-500">
+          <div className="text-center mt-4 md:mt-6 text-xs md:text-sm text-gray-500">
             Showing {paginatedProducts.length} of {products.length} products
           </div>
         </>
@@ -695,21 +707,21 @@ function ProductCarouselRenderer({
   const visibleProducts = products.slice(0, data.limit);
 
   return (
-    <div className="px-4 md:px-8 py-10 md:py-12">
+    <div className="px-4 md:px-8 py-8 md:py-12">
       {data.title && (
         <h2
-          className="text-2xl md:text-3xl font-bold mb-6 md:mb-8"
+          className="text-xl md:text-3xl font-bold mb-4 md:mb-8"
           style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
         >
           {data.title}
         </h2>
       )}
 
-      <div className="flex gap-5 overflow-x-auto pb-6 snap-x snap-mandatory">
+      <div className="flex gap-3 md:gap-5 overflow-x-auto pb-4 md:pb-6 snap-x snap-mandatory">
         {visibleProducts.map((product) => (
           <div
             key={product.product_id}
-            className="shrink-0 w-[85%] sm:w-[45%] md:w-[32%] lg:w-[24%] snap-start"
+            className="shrink-0 w-[70%] sm:w-[45%] md:w-[32%] lg:w-[24%] snap-start"
           >
             <ProductCard
               product={product}
@@ -743,21 +755,22 @@ function RelatedProductsRenderer({
     .filter((p) => p.product_id !== currentProductId)
     .slice(0, data.limit);
 
+  // Responsive columns
+  const getColumnClass = (columns: number) => {
+    if (columns <= 3) return "grid-cols-2 md:grid-cols-3";
+    return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+  };
+
   return (
-    <div className="px-4 md:px-8 py-10 md:py-12 border-t">
+    <div className="px-4 md:px-8 py-8 md:py-12 border-t">
       <h2
-        className="text-2xl md:text-3xl font-bold mb-6 md:mb-8"
+        className="text-xl md:text-3xl font-bold mb-4 md:mb-8"
         style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
       >
         {data.title}
       </h2>
 
-      <div
-        className="grid gap-6"
-        style={{
-          gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
-        }}
-      >
+      <div className={`grid gap-4 md:gap-6 ${getColumnClass(data.columns)}`}>
         {visibleProducts.map((product) => (
           <ProductCard
             key={product.product_id}
@@ -831,22 +844,25 @@ function ProductCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-16 w-16 text-gray-300" />
+            <Package className="h-12 md:h-16 w-12 md:w-16 text-gray-300" />
           </div>
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-2 md:p-4">
         <h3
-          className="font-medium text-base md:text-lg mb-1.5 line-clamp-2 min-h-11"
-          style={{ color: theme.colors.text }}
+          className="font-medium text-sm md:text-base lg:text-lg mb-1 md:mb-1.5 line-clamp-2"
+          style={{
+            color: theme.colors.text,
+            minHeight: "2.5rem",
+          }}
         >
           {product.product_name}
         </h3>
 
         {showPrice && displayPrice != null && (
           <p
-            className="font-bold text-lg md:text-xl"
+            className="font-bold text-base md:text-lg lg:text-xl"
             style={{ color: theme.colors.primary }}
           >
             ₦{displayPrice.toLocaleString()}
@@ -854,7 +870,7 @@ function ProductCard({
         )}
 
         {showSku && (product.sku || firstVariant?.sku) && (
-          <p className="text-xs md:text-sm text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 mt-1 hidden sm:block">
             SKU: {product.sku || firstVariant?.sku}
           </p>
         )}
@@ -871,7 +887,7 @@ function ProductCard({
 }
 
 // ============================================================================
-// PRODUCTS PAGE WITH DYNAMIC FILTERS
+// PRODUCTS PAGE WITH MOBILE-RESPONSIVE FILTERS
 // ============================================================================
 
 function ProductsHeaderRenderer({
@@ -887,19 +903,21 @@ function ProductsHeaderRenderer({
   const { filters, updateFilters } = useFilters();
 
   return (
-    <div className="px-4 md:px-8 py-6">
+    <div className="px-4 md:px-8 py-4 md:py-6">
       <h1
-        className="text-4xl font-bold mb-1"
+        className="text-2xl md:text-4xl font-bold mb-1"
         style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
       >
         {data.title}
       </h1>
       {data.subtitle && (
-        <p className="text-lg text-gray-500 mb-4">{data.subtitle}</p>
+        <p className="text-sm md:text-lg text-gray-500 mb-3 md:mb-4">
+          {data.subtitle}
+        </p>
       )}
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3 md:mt-4">
         {data.showResultCount && (
-          <span className="text-sm text-gray-500">
+          <span className="text-xs md:text-sm text-gray-500">
             Showing {productCount} product{productCount !== 1 ? "s" : ""}
           </span>
         )}
@@ -908,8 +926,8 @@ function ProductsHeaderRenderer({
             value={filters.sortOrder}
             onValueChange={(value) => updateFilters({ sortOrder: value })}
           >
-            <SelectTrigger className="w-50">
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
+            <SelectTrigger className="w-full sm:w-50">
+              <SlidersHorizontal className="h-3 md:h-4 w-3 md:w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white">
@@ -939,18 +957,18 @@ function ProductsFilterBarRenderer({
 
   return (
     <div
-      className={`px-4 md:px-8 py-4 border-y flex ${
+      className={`px-4 md:px-8 py-3 md:py-4 border-y flex ${
         data.filterPosition === "side"
-          ? "flex-col gap-4"
-          : "flex-row flex-wrap gap-4 items-start"
+          ? "flex-col gap-3 md:gap-4"
+          : "flex-col sm:flex-row flex-wrap gap-3 md:gap-4 items-start"
       } bg-gray-50 ${data.sticky ? "sticky top-0 z-10" : ""}`}
     >
-      <span className="text-sm font-medium text-gray-700 min-w-fit">
+      <span className="text-xs md:text-sm font-medium text-gray-700">
         Filters:
       </span>
 
       {data.showPriceFilter && (
-        <div className="flex-1 min-w-50">
+        <div className="flex-1 min-w-50 w-full sm:w-auto">
           <Label className="text-xs font-medium mb-2 block">Price Range</Label>
           <div className="space-y-2">
             <Slider
@@ -961,7 +979,8 @@ function ProductsFilterBarRenderer({
               min={priceMin}
               max={priceMax}
               step={500}
-              className="w-full"
+              minStepsBetweenThumbs={1}
+              className="w-full **:[[role=slider]]:bg-blue-500 **:[[role=slider]]:border-2 **:[[role=slider]]:border-white **:[[role=slider]]:shadow-md"
             />
             <div className="flex justify-between text-xs text-gray-600">
               <span>₦{filters.priceRange[0].toLocaleString()}</span>
@@ -972,7 +991,7 @@ function ProductsFilterBarRenderer({
       )}
 
       {data.showTypeFilter && (
-        <div className="min-w-37.5">
+        <div className="min-w-37.5 w-full sm:w-auto">
           <Label className="text-xs font-medium mb-2 block">Product Type</Label>
           <Select
             value={filters.productType}
@@ -1058,7 +1077,7 @@ function ProductImagesRenderer({
           className={`bg-gray-200 flex items-center justify-center ${aspectMap[data.mainImageAspect]}`}
           style={{ borderRadius: br }}
         >
-          <Package className="h-24 w-24 text-gray-400" />
+          <Package className="h-16 md:h-24 w-16 md:w-24 text-gray-400" />
         </div>
       </div>
     );
@@ -1068,9 +1087,9 @@ function ProductImagesRenderer({
     <div
       className={`flex ${
         data.thumbnailPosition === "left" && data.showThumbnails
-          ? "flex-row gap-4"
-          : "flex-col gap-4"
-      } px-4 md:px-8 py-8`}
+          ? "flex-row gap-2 md:gap-4"
+          : "flex-col gap-2 md:gap-4"
+      } px-4 md:px-8 py-6 md:py-8`}
     >
       {data.showThumbnails && data.thumbnailPosition === "left" && (
         <div className="flex flex-col gap-2">
@@ -1079,7 +1098,7 @@ function ProductImagesRenderer({
               key={i}
               onClick={() => setSelectedImageIndex(i)}
               className={cn(
-                "w-16 h-16 cursor-pointer border-2 transition-colors overflow-hidden",
+                "w-12 h-12 md:w-16 md:h-16 cursor-pointer border-2 transition-colors overflow-hidden",
                 selectedImageIndex === i
                   ? "border-blue-400"
                   : "border-gray-200 hover:border-gray-300",
@@ -1116,7 +1135,7 @@ function ProductImagesRenderer({
               key={i}
               onClick={() => setSelectedImageIndex(i)}
               className={cn(
-                "w-16 h-16 cursor-pointer border-2 transition-colors overflow-hidden",
+                "w-12 h-12 md:w-16 md:h-16 cursor-pointer border-2 transition-colors overflow-hidden",
                 selectedImageIndex === i
                   ? "border-blue-400"
                   : "border-gray-200 hover:border-gray-300",
@@ -1175,20 +1194,22 @@ function ProductInfoRenderer({
       : [];
 
   return (
-    <div className="px-4 md:px-8 py-8 space-y-4">
+    <div className="px-4 md:px-8 py-6 md:py-8 space-y-3 md:space-y-4">
       <div>
         <h1
-          className="text-3xl font-bold"
+          className="text-2xl md:text-3xl font-bold"
           style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
         >
           {product.product_name}
         </h1>
         {data.showSku && displaySku && (
-          <p className="text-sm text-gray-400 mt-1">SKU: {displaySku}</p>
+          <p className="text-xs md:text-sm text-gray-400 mt-1">
+            SKU: {displaySku}
+          </p>
         )}
         {data.pricePosition === "below_name" && displayPrice != null && (
           <p
-            className="text-2xl font-bold mt-2"
+            className="text-xl md:text-2xl font-bold mt-2"
             style={{ color: theme.colors.primary }}
           >
             ₦{displayPrice.toLocaleString()}
@@ -1199,7 +1220,7 @@ function ProductInfoRenderer({
       {data.showStockStatus && (
         <span
           className={cn(
-            "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
+            "inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium",
             inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
           )}
         >
@@ -1219,7 +1240,9 @@ function ProductInfoRenderer({
 
               return (
                 <div key={attrName}>
-                  <p className="text-sm font-medium mb-2">{attrName}</p>
+                  <p className="text-xs md:text-sm font-medium mb-2">
+                    {attrName}
+                  </p>
                   {data.variantSelectorStyle === "buttons" ? (
                     <div className="flex gap-2 flex-wrap">
                       {uniqueValues.map((value) => {
@@ -1245,7 +1268,7 @@ function ProductInfoRenderer({
                               variant && setSelectedVariantId(variant.id)
                             }
                             className={cn(
-                              "px-4 py-2 border-2 text-sm font-medium transition-colors",
+                              "px-3 md:px-4 py-1.5 md:py-2 border-2 text-xs md:text-sm font-medium transition-colors",
                               isSelected
                                 ? "border-blue-500 bg-blue-50 text-blue-700"
                                 : "border-gray-300 hover:border-blue-300",
@@ -1290,19 +1313,21 @@ function ProductInfoRenderer({
 
       {data.showQuantitySelector && (
         <div>
-          <p className="text-sm font-medium mb-2">Quantity</p>
+          <p className="text-xs md:text-sm font-medium mb-2">Quantity</p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="w-8 h-8 border rounded flex items-center justify-center font-bold hover:bg-gray-50"
+              className="w-8 h-8 border rounded flex items-center justify-center font-bold hover:bg-gray-50 text-sm md:text-base"
               style={{ borderRadius: br }}
             >
               −
             </button>
-            <span className="w-12 text-center">{quantity}</span>
+            <span className="w-10 md:w-12 text-center text-sm md:text-base">
+              {quantity}
+            </span>
             <button
               onClick={() => setQuantity((q) => q + 1)}
-              className="w-8 h-8 border rounded flex items-center justify-center font-bold hover:bg-gray-50"
+              className="w-8 h-8 border rounded flex items-center justify-center font-bold hover:bg-gray-50 text-sm md:text-base"
               style={{ borderRadius: br }}
             >
               +
@@ -1313,7 +1338,7 @@ function ProductInfoRenderer({
 
       {data.pricePosition === "above_cart" && displayPrice != null && (
         <p
-          className="text-2xl font-bold"
+          className="text-xl md:text-2xl font-bold"
           style={{ color: theme.colors.primary }}
         >
           ₦{displayPrice.toLocaleString()}
@@ -1322,10 +1347,10 @@ function ProductInfoRenderer({
 
       <button
         disabled={!inStock}
-        className="w-full py-4 font-semibold text-white flex items-center justify-center gap-3 text-lg transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 md:py-4 font-semibold text-white flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ backgroundColor: theme.colors.primary, borderRadius: br }}
       >
-        <ShoppingCart className="h-5 w-5" />
+        <ShoppingCart className="h-4 md:h-5 w-4 md:w-5" />
         {data.addToCartButtonText}
       </button>
     </div>
@@ -1347,7 +1372,6 @@ function ProductTabsRenderer({
     if (!product?.product_description) return data.tabs;
 
     return data.tabs.map((tab) => {
-      // Check if this is a description tab (case insensitive)
       if (tab.label.toLowerCase().includes("description")) {
         return {
           ...tab,
@@ -1358,13 +1382,11 @@ function ProductTabsRenderer({
     });
   }, [data.tabs, product]);
 
-  // Filter enabled tabs
   const enabledTabs = useMemo(
     () => processedTabs.filter((t) => t.enabled),
     [processedTabs],
   );
 
-  // Find active tab (fallback to first enabled tab)
   const activeTab = useMemo(
     () => enabledTabs.find((t) => t.id === activeTabId) ?? enabledTabs[0],
     [enabledTabs, activeTabId],
@@ -1372,7 +1394,7 @@ function ProductTabsRenderer({
 
   const tabBtnClass = (isActive: boolean) => {
     const base =
-      "px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ";
+      "px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-colors cursor-pointer ";
     if (data.tabStyle === "underline")
       return (
         base +
@@ -1389,15 +1411,14 @@ function ProductTabsRenderer({
     );
   };
 
-  // Don't render if there are no enabled tabs
   if (enabledTabs.length === 0) {
     return null;
   }
 
   return (
-    <div className="px-4 md:px-8 py-8">
+    <div className="px-4 md:px-8 py-6 md:py-8">
       <div
-        className={`flex ${data.tabStyle === "pills" ? "gap-2 p-1 bg-gray-100 rounded-full w-fit" : "border-b"}`}
+        className={`flex overflow-x-auto ${data.tabStyle === "pills" ? "gap-2 p-1 bg-gray-100 rounded-full w-fit" : "border-b"}`}
       >
         {enabledTabs.map((tab) => (
           <button
@@ -1411,10 +1432,10 @@ function ProductTabsRenderer({
       </div>
       {activeTab && (
         <div
-          className={`${data.tabStyle === "boxed" ? "border border-t-0 rounded-b p-6" : "pt-6"}`}
+          className={`${data.tabStyle === "boxed" ? "border border-t-0 rounded-b p-4 md:p-6" : "pt-4 md:pt-6"}`}
         >
           <div
-            className="prose prose-lg max-w-none"
+            className="prose prose-sm md:prose-lg max-w-none"
             dangerouslySetInnerHTML={{ __html: activeTab.content }}
           />
         </div>
