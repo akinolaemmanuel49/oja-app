@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   DndContext,
@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Package,
   Upload,
+  Save,
 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -46,6 +47,11 @@ import {
   DEFAULT_PAGE_COMPONENTS,
   createComponent,
 } from "@/lib/storefrontComponentsRegistry";
+import type { ErrorResponse } from "@/responses/error";
+import { toast } from "sonner";
+import { saveStorefrontDesign } from "@/api/storefronts/saveStorefrontDesign";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { fetchStorefrontDesign } from "@/api/storefronts/fetchStorefrontDesign";
 
 // ============================================================================
 // PAGE TAB CONFIG
@@ -112,6 +118,45 @@ export default function StorefrontDesigner() {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [showPreview, setShowPreview] = useState(false);
   const [showThemeEditor, setShowThemeEditor] = useState(false);
+
+  // Fetch existing design on mount
+  const { data: existingDesign } = useQuery({
+    queryKey: ["storefront-design", storeId!],
+    queryFn: fetchStorefrontDesign,
+    enabled: !!storeId,
+  });
+
+  // Load existing design into state when it arrives
+  useEffect(() => {
+    if (existingDesign) {
+      setTheme(existingDesign.theme);
+      setPages({
+        home: existingDesign.pages.home.components,
+        products: existingDesign.pages.products.components,
+        product_detail: existingDesign.pages.product_detail.components,
+      });
+    }
+  }, [existingDesign]);
+
+  // Save design mutation
+  const saveMutation = useMutation({
+    mutationFn: (design: StorefrontDesign) =>
+      saveStorefrontDesign(storeId!, design),
+    onSuccess: () => {
+      toast.success("Design saved successfully!");
+    },
+    onError: (err: unknown) => {
+      let message = "Invalid credentials";
+
+      if (err && typeof err === "object" && "response" in err) {
+        const response = (err as { response?: { data?: ErrorResponse } })
+          .response;
+        message = response?.data?.detail ?? message;
+      }
+
+      toast.error(message || "Failed to save design");
+    },
+  });
 
   // ──────────────────────────────
   // DERIVED
@@ -277,6 +322,52 @@ export default function StorefrontDesigner() {
     URL.revokeObjectURL(url);
   }, [generateDesign, storeId]);
 
+  const handleSave = useCallback(() => {
+    if (!storeId) return;
+
+    const design: StorefrontDesign = {
+      version: "1.0",
+      storefrontId: storeId,
+      storefrontName: "Storefront", // You can get this from the storefront query
+      theme,
+      pages: {
+        home: {
+          meta: {
+            title: "Home",
+            description: "Welcome to our store",
+          },
+          components: pages.home,
+          version: "",
+          createdAt: "",
+          updatedAt: "",
+        },
+        products: {
+          meta: {
+            title: "Products",
+            description: "Browse our products",
+          },
+          components: pages.products,
+          version: "",
+          createdAt: "",
+          updatedAt: "",
+        },
+        product_detail: {
+          meta: {
+            title: "Product Details",
+            description: "View product information",
+          },
+          components: pages.product_detail,
+          version: "",
+          createdAt: "",
+          updatedAt: "",
+        },
+      },
+    };
+
+    // Save to backend
+    saveMutation.mutate(design);
+  }, [storeId, theme, pages, saveMutation]);
+
   const handleLoadSpec = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -373,6 +464,16 @@ export default function StorefrontDesigner() {
             Preview
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSave}
+            disabled={saveMutation.isPending}
+          >
+            <Save className="h-4 w-4 mr-1.5" />
+            {saveMutation.isPending ? "Saving..." : "Save"}
+          </Button>
+
           <label className="cursor-pointer">
             <input
               type="file"
@@ -388,9 +489,9 @@ export default function StorefrontDesigner() {
             </Button>
           </label>
 
-          <Button size="sm" onClick={handleDownloadSpec}>
+          <Button variant="outline" size="sm" onClick={handleDownloadSpec}>
             <Download className="h-4 w-4 mr-1.5" />
-            Download Spec
+            Download
           </Button>
         </div>
       </header>

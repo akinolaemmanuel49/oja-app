@@ -1,4 +1,4 @@
-import { Home, Users, Settings, Package, Store, Group } from "lucide-react";
+import { Home, Users, Package, Store, Group } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { PermissionGuard } from "@/components/guards/PermissionGuard";
 import { AppHref } from "@/routes/constants";
@@ -56,12 +56,6 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       href: AppHref.groupsRoute,
       permission: "groups:read", // Only show if user can read groups
       ariaLabel: "Groups",
-    },
-    {
-      icon: Settings,
-      label: "Settings",
-      href: AppHref.settingsRoute,
-      ariaLabel: "Settings",
     },
   ];
 
