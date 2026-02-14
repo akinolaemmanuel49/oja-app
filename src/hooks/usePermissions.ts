@@ -17,7 +17,7 @@ import { createContext, useContext } from "react";
  * Provides centralized access to user permissions and checking utilities.
  */
 export type PermissionContextType = {
-  permissions: Permission[];
+  permissions: Permission[] | string[];
   can: (permission: PermissionCode) => boolean;
   canAny: (permissions: PermissionCode[]) => boolean;
   canAll: (permissions: PermissionCode[]) => boolean;

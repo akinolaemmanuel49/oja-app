@@ -1,13 +1,6 @@
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarIcon } from "./SidebarIcon";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useLogout } from "@/hooks/useLogout";
 
 type NavbarProps = {
@@ -51,37 +44,14 @@ export const Navbar = ({ onToggleSidebar, isOpen }: NavbarProps) => {
 
         {/* Right side navbar */}
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <User
-                  className="h-5 w-5"
-                  aria-label="Current User Management"
-                />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              align="end"
-              className="w-44 bg-white border shadow-lg"
-            >
-              <DropdownMenuItem className="flex items-center gap-2">
-                <User className="h-4 w-4" aria-label="Profile" />
-                Profile
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
-                className="flex items-center gap-2 text-red-600 focus:text-red-600"
-              >
-                <LogOut className="h-4 w-4" />
-                {logoutMutation.isPending ? "Logging out..." : "Logout"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {logoutMutation.isPending ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-red-500"></div>
+          ) : (
+            <LogOut
+              onClick={() => logoutMutation.mutate()}
+              className="h-4 w-4 text-red-500 cursor-pointer"
+            />
+          )}
         </div>
       </div>
     </nav>

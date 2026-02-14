@@ -184,9 +184,7 @@ export default function CreateUser() {
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password}</p>
                 )}
-                <p className="text-sm text-gray-500">
-                  User can change this after first login
-                </p>
+                <p className="text-sm text-gray-500">User cannot change this</p>
               </div>
 
               {/* First Name Field */}

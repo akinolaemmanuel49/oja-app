@@ -24,5 +24,5 @@ export type PermissionCode = string; // e.g., "users:read", "products:*"
  */
 export type UserWithPermissions = {
   user: User;
-  permissions: Permission[];
+  permissions: string[];
 };
